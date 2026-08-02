@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fisio+ by OrtoFlix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --surface: #161b22; --surface2: #1e2530;
+      --border: #30363d; --accent: #f97316; --accent-soft: rgba(249,115,22,0.12);
+      --text: #e6edf3; --text-muted: #8b949e; --text-subtle: #484f58;
+      --radius-lg: 20px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 20px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; border-bottom: 1px solid var(--border); background: rgba(13,17,23,0.95); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 10; }
+    .header-icon { width: 36px; height: 36px; border-radius: 10px; }
+    .header-text { display: flex; flex-direction: column; }
+    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--text); line-height: 1; }
+    .logo span { color: var(--accent); }
+    .logo-sub { font-size: 11px; color: var(--text-muted); font-weight: 400; margin-top: 1px; }
+    .badge-beta { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; letter-spacing: 1px; align-self: center; }
+    main { flex: 1; max-width: 480px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
+    .hero { text-align: center; margin-bottom: 40px; }
+    .hero-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 10px; line-height: 1.2; }
+    .hero-subtitle { color: var(--text-muted); font-size: 15px; line-height: 1.6; }
+    .modules-label { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; }
+    .module-card { display: flex; align-items: center; gap: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px 20px; margin-bottom: 12px; text-decoration: none; color: var(--text); transition: all 0.2s; position: relative; overflow: hidden; }
+    .module-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
+    .module-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .module-card:hover::before { opacity: 1; }
+    .module-icon { width: 52px; height: 52px; border-radius: 14px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .module-icon.blue { background: rgba(88,166,255,0.12); }
+    .module-icon.green { background: rgba(63,185,80,0.12); }
+    .module-info { flex: 1; }
+    .module-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; line-height: 1.3; }
+    .module-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .module-arrow { color: var(--text-subtle); font-size: 18px; flex-shrink: 0; transition: transform 0.2s, color 0.2s; }
+    .module-card:hover .module-arrow { transform: translateX(4px); color: var(--accent); }
+    .module-tag { display: inline-block; background: rgba(63,185,80,0.12); color: #3fb950; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; font-family: 'Syne', sans-serif; letter-spacing: 0.5px; margin-top: 6px; }
+    .module-tag.ext { background: rgba(88,166,255,0.12); color: #58a6ff; }
+    .ortoflix-card { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); border: 1px solid rgba(249,115,22,0.3); border-radius: var(--radius-lg); padding: 32px 24px; text-align: center; margin-top: 32px; }
+    .ortoflix-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 28px; color: #f97316; letter-spacing: 2px; margin-bottom: 12px; }
+    .ortoflix-desc { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
+    .btn-ortoflix { display: inline-flex; align-items: center; gap: 8px; background: #f97316; color: white; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; transition: all 0.2s; }
+    .btn-ortoflix:hover { background: #ea6c0a; transform: translateY(-1px); }
+    footer { text-align: center; padding: 32px 20px; border-top: 1px solid var(--border); }
+    .footer-dev { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
+    .footer-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .footer-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 13px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 20px; transition: all 0.2s; }
+    .footer-link:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <header>
+    <img class="header-icon" src="data:image/png;base64,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" alt="Fisio+" />
+    <div class="header-text">
+      <div class="logo">Fisio<span>+</span></div>
+      <div class="logo-sub">by OrtoFlix</div>
+    </div>
+    <span class="badge-beta">BETA</span>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-title">Plataforma do Fisioterapeuta</div>
+      <p class="hero-subtitle">Ferramentas para a prática clínica em um único lugar.</p>
+    </div>
+
+    <div class="modules-label">Módulos disponíveis</div>
+
+    <a class="module-card" href="https://fisiomais.ortoflix.com" target="_blank">
+      <div class="module-icon">🏋️</div>
+      <div class="module-info">
+        <div class="module-name">Exercícios Domiciliares</div>
+        <div class="module-desc">Prescreva planos personalizados e envie por link para o paciente.</div>
+        <span class="module-tag">✓ Disponível</span>
+      </div>
+      <div class="module-arrow">→</div>
+    </a>
+
+    <a class="module-card" href="https://fisioq.ortoflix.com" target="_blank">
+      <div class="module-icon blue">📋</div>
+      <div class="module-info">
+        <div class="module-name">Questionários Funcionais</div>
+        <div class="module-desc">IKDC, Lysholm, WOMAC, FAAM, DASH, Oswestry e mais — com score automático.</div>
+        <span class="module-tag">✓ Disponível</span>
+      </div>
+      <div class="module-arrow">→</div>
+    </a>
+
+    <a class="module-card" href="https://cbdf.coffito.gov.br" target="_blank">
+      <div class="module-icon green">🩺</div>
+      <div class="module-info">
+        <div class="module-name">Classificação Brasileira de Diagnóstico Fisioterapêutico</div>
+        <div class="module-desc">CBDF — Sistema oficial de diagnóstico do COFFITO.</div>
+        <span class="module-tag ext">↗ Externo</span>
+      </div>
+      <div class="module-arrow">→</div>
+    </a>
+
+    <div class="ortoflix-card">
+      <div class="ortoflix-logo">ORTOFLIX</div>
+      <p class="ortoflix-desc">O maior streaming de fisioterapia ortopédica do Brasil. Conteúdo em série para estudantes e profissionais.</p>
+      <a class="btn-ortoflix" href="https://www.ortoflix.com" target="_blank">Acessar OrtoFlix →</a>
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-dev">Desenvolvido por Prof. Felipe Cerqueira</div>
+    <div class="footer-links">
+      <a class="footer-link" href="mailto:suporte@ortoflix.com">✉ suporte@ortoflix.com</a>
+      <a class="footer-link" href="https://instagram.com/prof.felipecerqueira" target="_blank">◎ Prof. Felipe Cerqueira</a>
+      <a class="footer-link" href="https://instagram.com/ortoflix" target="_blank">◎ OrtoFlix</a>
+    </div>
+  </footer>
+</body>
+</html>
