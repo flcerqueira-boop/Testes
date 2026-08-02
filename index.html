@@ -1,121 +1,1149 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fisio+ by OrtoFlix</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #0d1117; --surface: #161b22; --surface2: #1e2530;
-      --border: #30363d; --accent: #f97316; --accent-soft: rgba(249,115,22,0.12);
-      --text: #e6edf3; --text-muted: #8b949e; --text-subtle: #484f58;
-      --radius-lg: 20px;
-    }
-    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
-    header { padding: 20px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; border-bottom: 1px solid var(--border); background: rgba(13,17,23,0.95); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 10; }
-    .header-icon { width: 36px; height: 36px; border-radius: 10px; }
-    .header-text { display: flex; flex-direction: column; }
-    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--text); line-height: 1; }
-    .logo span { color: var(--accent); }
-    .logo-sub { font-size: 11px; color: var(--text-muted); font-weight: 400; margin-top: 1px; }
-    .badge-beta { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; letter-spacing: 1px; align-self: center; }
-    main { flex: 1; max-width: 480px; margin: 0 auto; padding: 40px 20px 60px; width: 100%; }
-    .hero { text-align: center; margin-bottom: 40px; }
-    .hero-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 10px; line-height: 1.2; }
-    .hero-subtitle { color: var(--text-muted); font-size: 15px; line-height: 1.6; }
-    .modules-label { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; }
-    .module-card { display: flex; align-items: center; gap: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px 20px; margin-bottom: 12px; text-decoration: none; color: var(--text); transition: all 0.2s; position: relative; overflow: hidden; }
-    .module-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
-    .module-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-    .module-card:hover::before { opacity: 1; }
-    .module-icon { width: 52px; height: 52px; border-radius: 14px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-    .module-icon.blue { background: rgba(88,166,255,0.12); }
-    .module-icon.green { background: rgba(63,185,80,0.12); }
-    .module-info { flex: 1; }
-    .module-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 4px; line-height: 1.3; }
-    .module-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-    .module-arrow { color: var(--text-subtle); font-size: 18px; flex-shrink: 0; transition: transform 0.2s, color 0.2s; }
-    .module-card:hover .module-arrow { transform: translateX(4px); color: var(--accent); }
-    .module-tag { display: inline-block; background: rgba(63,185,80,0.12); color: #3fb950; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; font-family: 'Syne', sans-serif; letter-spacing: 0.5px; margin-top: 6px; }
-    .module-tag.ext { background: rgba(88,166,255,0.12); color: #58a6ff; }
-    .ortoflix-card { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); border: 1px solid rgba(249,115,22,0.3); border-radius: var(--radius-lg); padding: 32px 24px; text-align: center; margin-top: 32px; }
-    .ortoflix-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 28px; color: #f97316; letter-spacing: 2px; margin-bottom: 12px; }
-    .ortoflix-desc { color: var(--text-muted); font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
-    .btn-ortoflix { display: inline-flex; align-items: center; gap: 8px; background: #f97316; color: white; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; transition: all 0.2s; }
-    .btn-ortoflix:hover { background: #ea6c0a; transform: translateY(-1px); }
-    footer { text-align: center; padding: 32px 20px; border-top: 1px solid var(--border); }
-    .footer-dev { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
-    .footer-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
-    .footer-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 13px; padding: 8px 16px; border: 1px solid var(--border); border-radius: 20px; transition: all 0.2s; }
-    .footer-link:hover { border-color: var(--accent); color: var(--accent); }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>FisioLab — Prof. Felipe Cerqueira</title>
+<meta name="description" content="FisioLab — ambiente de estudo e simulação para disciplinas de fisioterapia. Prof. Felipe Cerqueira." />
+<meta name="theme-color" content="#22C55E" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FisioLab" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@800;900&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap');
+  body { margin: 0; background: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; }
+  .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
+  .font-mono { font-family: 'IBM Plex Mono', monospace; }
+</style>
 </head>
 <body>
-  <header>
-    <img class="header-icon" src="data:image/png;base64,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" alt="Fisio+" />
-    <div class="header-text">
-      <div class="logo">Fisio<span>+</span></div>
-      <div class="logo-sub">by OrtoFlix</div>
-    </div>
-    <span class="badge-beta">BETA</span>
-  </header>
+<div id="root"></div>
 
-  <main>
-    <div class="hero">
-      <div class="hero-title">Plataforma do Fisioterapeuta</div>
-      <p class="hero-subtitle">Ferramentas para a prática clínica em um único lugar.</p>
-    </div>
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect } = React;
 
-    <div class="modules-label">Módulos disponíveis</div>
+/* =========================================================================
+   Design: painel de aparelho de eletroestimulação — tela tipo osciloscópio
+   com traço fósforo verde, chassi escuro, leitura em LCD mono.
 
-    <a class="module-card" href="https://fisiomais.ortoflix.com" target="_blank">
-      <div class="module-icon">🏋️</div>
-      <div class="module-info">
-        <div class="module-name">Exercícios Domiciliares</div>
-        <div class="module-desc">Prescreva planos personalizados e envie por link para o paciente.</div>
-        <span class="module-tag">✓ Disponível</span>
+   Estrutura alinhada ao slide "Podem ser classificadas": tipo de corrente,
+   polaridade (resultante — polarizada/despolarizada), número de fases e
+   formato de onda são tratados como eixos que se combinam, não um menu único.
+   ========================================================================= */
+
+const TIPOS = [
+  { id: "cc", label: "Corrente Contínua (CC)" },
+  { id: "ca", label: "Corrente Alternada (CA)" },
+  { id: "pulsada", label: "Corrente Pulsada" },
+];
+
+const FORMATOS = [
+  { id: "quadrada", label: "Quadrada" },
+  { id: "triangular", label: "Triangular" },
+  { id: "sinusoidal", label: "Sinusoidal" },
+  { id: "trapezoidal", label: "Trapezoidal" },
+];
+
+function clinicalNote(tipo, numFases, simetria) {
+  if (tipo === "cc") return "Fluxo unidirecional constante. Base da iontoforese e de efeitos polares (atração/repulsão iônica sob os eletrodos). Sempre polarizada.";
+  if (tipo === "ca") return "Corrente sinusoidal bidirecional, sem componente polar líquido. Sempre despolarizada — não gera efeitos químicos cumulativos sob os eletrodos.";
+  if (tipo === "pulsada" && numFases === "mono") return "Pulsos unidirecionais, com período de repouso entre eles. Sempre polarizada — requer atenção à carga acumulada por fase.";
+  if (tipo === "pulsada" && numFases === "bi" && simetria === "simetrica") return "Cada fase é espelho da outra — carga líquida zero, despolarizada. Minimiza risco de irritação cutânea. Comum em TENS convencional.";
+  if (tipo === "pulsada" && numFases === "bi" && simetria === "assimetrica") return "Fases com amplitude/duração diferentes, mas carga balanceada (mesma área sob a curva) — despolarizada. Comum em NMES para contração muscular.";
+  return "";
+}
+
+function polaridadeResultante(tipo, numFases) {
+  if (tipo === "cc") return "polarizada";
+  if (tipo === "ca") return "despolarizada";
+  if (tipo === "pulsada" && numFases === "mono") return "polarizada";
+  return "despolarizada";
+}
+
+function SimuladorCorrentes({ onBack }) {
+  const [tipo, setTipo] = useState("pulsada");
+  const [numFases, setNumFases] = useState("bi");
+  const [simetria, setSimetria] = useState("simetrica");
+  const [formato, setFormato] = useState("quadrada");
+  const [polo, setPolo] = useState(1);
+
+  const [frequency, setFrequency] = useState(50);
+  const [pulseWidth, setPulseWidth] = useState(10);
+  const [phase2Width, setPhase2Width] = useState(20);
+  const [intensity, setIntensity] = useState(20);
+  const [showInfo, setShowInfo] = useState(false);
+  const [presentMode, setPresentMode] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(false);
+
+  const canvasRef = useRef(null);
+
+  const WINDOW_MS = 1000;
+  const MAX_MA = 100;
+
+  const showFases = tipo === "pulsada";
+  const showSimetria = tipo === "pulsada" && numFases === "bi";
+  const showFormato = tipo === "pulsada";
+  const showPolo = tipo === "cc";
+  const showFrequency = tipo !== "cc";
+  const showPulseWidth = tipo === "pulsada";
+  const showPhase2 = tipo === "pulsada" && numFases === "bi" && simetria === "assimetrica";
+
+  const polaridade = polaridadeResultante(tipo, numFases);
+
+  function addPhase(pts, tStart, durationMs, amplitude, shape) {
+    const push = (t, y) => pts.push({ t, y });
+    if (durationMs <= 0) return;
+    if (shape === "quadrada") {
+      push(tStart, 0);
+      push(tStart, amplitude);
+      push(tStart + durationMs, amplitude);
+      push(tStart + durationMs, 0);
+    } else if (shape === "triangular") {
+      push(tStart, 0);
+      push(tStart + durationMs / 2, amplitude);
+      push(tStart + durationMs, 0);
+    } else if (shape === "trapezoidal") {
+      const rise = durationMs * 0.25;
+      push(tStart, 0);
+      push(tStart + rise, amplitude);
+      push(tStart + durationMs - rise, amplitude);
+      push(tStart + durationMs, 0);
+    } else if (shape === "sinusoidal") {
+      const steps = 12;
+      for (let i = 0; i <= steps; i++) {
+        const t = tStart + (durationMs * i) / steps;
+        const y = amplitude * Math.sin((Math.PI * i) / steps);
+        push(t, y);
+      }
+    }
+  }
+
+  function buildPoints() {
+    const pts = [];
+    const push = (t, y) => pts.push({ t, y });
+
+    if (tipo === "cc") {
+      push(0, intensity * polo);
+      push(WINDOW_MS, intensity * polo);
+      return pts;
+    }
+
+    if (tipo === "ca") {
+      const steps = 600;
+      for (let i = 0; i <= steps; i++) {
+        const t = (WINDOW_MS * i) / steps;
+        const y = intensity * Math.sin((2 * Math.PI * frequency * t) / 1000);
+        push(t, y);
+      }
+      return pts;
+    }
+
+    const period = 1000 / frequency;
+    const pw1 = pulseWidth;
+    const pw2 = phase2Width;
+    const amp2 =
+      numFases === "bi"
+        ? simetria === "simetrica"
+          ? intensity
+          : (intensity * pulseWidth) / Math.max(phase2Width, 1)
+        : 0;
+
+    let t = 0;
+    push(0, 0);
+    while (t < WINDOW_MS) {
+      addPhase(pts, t, pw1, intensity, formato);
+      let cursor = t + pw1;
+      if (numFases === "bi") {
+        const dur2 = simetria === "simetrica" ? pw1 : pw2;
+        addPhase(pts, cursor, dur2, -amp2, formato);
+        cursor += dur2;
+      }
+      push(Math.min(cursor, WINDOW_MS), 0);
+      t = Math.max(t + period, cursor);
+      push(Math.min(t, WINDOW_MS), 0);
+    }
+    return pts;
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+    const padL = 58, padR = 16, padT = 16, padB = 28;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#07130D";
+    ctx.fillRect(0, 0, W, H);
+
+    const yZero = padT + plotH / 2;
+    const xScale = plotW / WINDOW_MS;
+    const yScale = (plotH / 2) / MAX_MA;
+
+    ctx.strokeStyle = "rgba(74,255,140,0.14)";
+    ctx.lineWidth = 1;
+    const gridLinesX = 10;
+    for (let i = 0; i <= gridLinesX; i++) {
+      const x = padL + (plotW * i) / gridLinesX;
+      ctx.beginPath();
+      ctx.moveTo(x, padT);
+      ctx.lineTo(x, padT + plotH);
+      ctx.stroke();
+    }
+    const gridLinesY = 4;
+    for (let i = 0; i <= gridLinesY; i++) {
+      const y = padT + (plotH * i) / gridLinesY;
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = "rgba(74,255,140,0.35)";
+    ctx.beginPath();
+    ctx.moveTo(padL, yZero);
+    ctx.lineTo(padL + plotW, yZero);
+    ctx.stroke();
+
+    ctx.fillStyle = "#6FE3A3";
+    ctx.font = "13px 'IBM Plex Mono', monospace";
+    ctx.fillText(`+${MAX_MA} mA`, 4, padT + 8);
+    ctx.fillText(`-${MAX_MA} mA`, 4, padT + plotH);
+    ctx.fillText("0", 4, yZero + 3);
+    ctx.fillText(`${WINDOW_MS} ms (1 s)`, padL + plotW - 62, padT + plotH + 18);
+    ctx.fillText("0 ms", padL, padT + plotH + 18);
+
+    const pts = buildPoints();
+    ctx.strokeStyle = "#4AFF8C";
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "#4AFF8C";
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const x = padL + p.t * xScale;
+      const y = yZero - Math.max(-MAX_MA, Math.min(MAX_MA, p.y)) * yScale;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }, [tipo, numFases, simetria, formato, polo, frequency, pulseWidth, phase2Width, intensity, presentMode]);
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#12161B", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+        .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
+        .font-mono { font-family: 'IBM Plex Mono', monospace; }
+        input[type="range"] {
+          -webkit-appearance: none;
+          height: 4px;
+          border-radius: 2px;
+          background: #3A4650;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 16px; height: 16px; border-radius: 50%;
+          background: #E8892C; border: 2px solid #FFDCB0; cursor: pointer;
+          margin-top: -6px;
+        }
+        input[type="range"]::-moz-range-thumb {
+          width: 16px; height: 16px; border-radius: 50%;
+          background: #E8892C; border: 2px solid #FFDCB0; cursor: pointer;
+        }
+      `}</style>
+
+      {!presentMode && (
+        <div className="px-5 pb-4 border-b flex items-center justify-between" style={{ borderColor: "#262D35", background: "#171B21", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}>
+          <div>
+            <h1 className="font-display text-2xl" style={{ color: "#F2EFE6" }}>
+              SIMULADOR DE CORRENTES
+            </h1>
+            <p className="font-mono text-xs tracking-widest uppercase" style={{ color: "#E8892C" }}>
+              by OrtoFlix
+            </p>
+          </div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="font-mono text-xs px-3 py-1.5 rounded border whitespace-nowrap"
+              style={{ color: "#8A94A0", borderColor: "#3A4650", background: "#0F1318" }}
+            >
+              ← FisioLab
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className={presentMode ? "p-3 flex flex-col gap-3" : "p-4 md:p-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 max-w-6xl mx-auto"}>
+        <div className="rounded-lg p-3 md:p-4 sticky top-2 z-10 relative" style={{ background: "#171B21", border: "1px solid #262D35" }}>
+          <button
+            onClick={() => { setPresentMode((v) => !v); setControlsOpen(false); }}
+            aria-label={presentMode ? "Sair do modo apresentação" : "Modo apresentação"}
+            title={presentMode ? "Sair do modo apresentação" : "Modo apresentação"}
+            className="absolute top-3 right-3 z-20 w-8 h-8 rounded flex items-center justify-center border"
+            style={{ color: "#E8892C", borderColor: "#3A4650", background: "#0F1318" }}
+          >
+            {presentMode ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 9V5a2 2 0 0 1 2-2h4M17 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M7 21H3a2 2 0 0 1-2-2v-4" />
+              </svg>
+            )}
+          </button>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2 pr-10">
+            <p className="font-mono text-xs uppercase tracking-widest" style={{ color: "#6FE3A3" }}>
+              Forma de onda
+            </p>
+            <p className="font-mono text-xs text-right" style={{ color: "#6FE3A3" }}>
+              {TIPOS.find((t) => t.id === tipo)?.label}
+              {showFases && (numFases === "mono" ? " · Monofásica" : ` · Bifásica ${simetria === "simetrica" ? "simétrica" : "assimétrica"}`)}
+              {showFormato && ` · ${FORMATOS.find((f) => f.id === formato)?.label}`}
+            </p>
+          </div>
+          <canvas
+            ref={canvasRef}
+            width={presentMode ? 1400 : 900}
+            height={presentMode ? 560 : 360}
+            className="w-full rounded"
+            style={{ background: "#07130D", border: "1px solid #1E3428" }}
+          />
+          <div className="flex items-center gap-3 mt-4 flex-wrap">
+            <span className="font-mono text-xs uppercase tracking-widest" style={{ color: "#8A94A0" }}>
+              Existe carga líquida?
+            </span>
+            <button
+              onClick={() => setShowInfo(true)}
+              aria-label="Sobre esta forma de onda"
+              className="w-5 h-5 rounded-full flex items-center justify-center font-mono text-xs"
+              style={{ background: "#0F1318", color: "#6FE3A3", border: "1px solid #3A4650" }}
+            >
+              i
+            </button>
+            <div className="flex gap-2">
+              <span
+                className="font-mono text-xs px-3 py-1.5 rounded border"
+                style={
+                  polaridade === "polarizada"
+                    ? { background: "#E8892C", color: "#171B21", borderColor: "#E8892C" }
+                    : { background: "#0F1318", color: "#5A6570", borderColor: "#3A4650" }
+                }
+              >
+                POLARIZADA
+              </span>
+              <span
+                className="font-mono text-xs px-3 py-1.5 rounded border"
+                style={
+                  polaridade === "despolarizada"
+                    ? { background: "#E8892C", color: "#171B21", borderColor: "#E8892C" }
+                    : { background: "#0F1318", color: "#5A6570", borderColor: "#3A4650" }
+                }
+              >
+                DESPOLARIZADA
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {showInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(7,19,13,0.75)" }} onClick={() => setShowInfo(false)}>
+            <div
+              className="max-w-sm w-full rounded-lg p-5"
+              style={{ background: "#171B21", border: "1px solid #262D35" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-mono text-xs uppercase tracking-widest" style={{ color: "#6FE3A3" }}>
+                  Sobre esta forma de onda
+                </p>
+                <button
+                  onClick={() => setShowInfo(false)}
+                  className="font-mono text-xs px-2 py-1"
+                  style={{ color: "#8A94A0" }}
+                >
+                  Fechar
+                </button>
+              </div>
+              <p className="text-sm leading-relaxed" style={{ color: "#DCE1E5" }}>
+                {clinicalNote(tipo, numFases, simetria)}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {(!presentMode || controlsOpen) && (
+        <div className="rounded-lg p-4 space-y-4" style={{ background: "#171B21", border: "1px solid #262D35" }}>
+          <div>
+            <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+              Tipo de corrente
+            </label>
+            <select
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value)}
+              className="w-full rounded px-3 py-2 text-sm"
+              style={{ background: "#0F1318", color: "#F2EFE6", border: "1px solid #3A4650" }}
+            >
+              {TIPOS.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {showFases && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Número de fases
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setNumFases("mono")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={numFases === "mono" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Monofásica
+                </button>
+                <button
+                  onClick={() => setNumFases("bi")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={numFases === "bi" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Bifásica
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showSimetria && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Simetria das fases
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSimetria("simetrica")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={simetria === "simetrica" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Simétrica
+                </button>
+                <button
+                  onClick={() => setSimetria("assimetrica")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={simetria === "assimetrica" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Assimétrica
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showFormato && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Formato de onda
+              </label>
+              <select
+                value={formato}
+                onChange={(e) => setFormato(e.target.value)}
+                className="w-full rounded px-3 py-2 text-sm"
+                style={{ background: "#0F1318", color: "#F2EFE6", border: "1px solid #3A4650" }}
+              >
+                {FORMATOS.map((f) => (
+                  <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {showPolo && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Polo (Corrente Contínua)
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPolo(1)}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={polo === 1 ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Positivo (Ânodo)
+                </button>
+                <button
+                  onClick={() => setPolo(-1)}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={polo === -1 ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Negativo (Cátodo)
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showFrequency && (
+            <Slider label="Frequência" value={frequency} unit="Hz" min={1} max={150} step={1} onChange={setFrequency} />
+          )}
+          {showPulseWidth && (
+            <Slider label={showPhase2 ? "Duração de pulso (fase 1)" : "Duração de pulso"} value={pulseWidth} unit="ms" min={1} max={100} step={1} onChange={setPulseWidth} />
+          )}
+          {showPhase2 && (
+            <Slider label="Duração da fase 2" value={phase2Width} unit="ms" min={pulseWidth} max={150} step={1} onChange={setPhase2Width} />
+          )}
+          <Slider label="Intensidade" value={intensity} unit="mA" min={1} max={100} step={1} onChange={setIntensity} />
+
+          <div className="pt-2 mt-2" style={{ borderTop: "1px solid #262D35" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "#6C7680" }}>
+              Simulação didática — os valores de corrente são ilustrativos, não
+              correspondem à saída real de um equipamento clínico. Janela fixa de 1
+              segundo e escala de amplitude fixa em ±100 mA, para facilitar a
+              comparação visual entre parâmetros. A duração de pulso é exibida em
+              milissegundos (em vez de microssegundos, como em equipamentos reais)
+              para facilitar a visualização didática do formato da onda.
+            </p>
+          </div>
+        </div>
+        )}
+
+        {presentMode && (
+          <button
+            onClick={() => setControlsOpen((v) => !v)}
+            className="fixed bottom-5 right-5 z-20 font-mono text-xs px-4 py-2.5 rounded-full border shadow-lg"
+            style={{ background: "#E8892C", color: "#171B21", borderColor: "#E8892C" }}
+          >
+            {controlsOpen ? "Fechar controles" : "Controles"}
+          </button>
+        )}
       </div>
-      <div class="module-arrow">→</div>
-    </a>
 
-    <a class="module-card" href="https://fisioq.ortoflix.com" target="_blank">
-      <div class="module-icon blue">📋</div>
-      <div class="module-info">
-        <div class="module-name">Questionários Funcionais</div>
-        <div class="module-desc">IKDC, Lysholm, WOMAC, FAAM, DASH, Oswestry e mais — com score automático.</div>
-        <span class="module-tag">✓ Disponível</span>
-      </div>
-      <div class="module-arrow">→</div>
-    </a>
-
-    <a class="module-card" href="https://cbdf.coffito.gov.br" target="_blank">
-      <div class="module-icon green">🩺</div>
-      <div class="module-info">
-        <div class="module-name">Classificação Brasileira de Diagnóstico Fisioterapêutico</div>
-        <div class="module-desc">CBDF — Sistema oficial de diagnóstico do COFFITO.</div>
-        <span class="module-tag ext">↗ Externo</span>
-      </div>
-      <div class="module-arrow">→</div>
-    </a>
-
-    <div class="ortoflix-card">
-      <div class="ortoflix-logo">ORTOFLIX</div>
-      <p class="ortoflix-desc">O maior streaming de fisioterapia ortopédica do Brasil. Conteúdo em série para estudantes e profissionais.</p>
-      <a class="btn-ortoflix" href="https://www.ortoflix.com" target="_blank">Acessar OrtoFlix →</a>
+      {!presentMode && <ContactFooter dark />}
     </div>
-  </main>
+  );
+}
 
-  <footer>
-    <div class="footer-dev">Desenvolvido por Prof. Felipe Cerqueira</div>
-    <div class="footer-links">
-      <a class="footer-link" href="mailto:suporte@ortoflix.com">✉ suporte@ortoflix.com</a>
-      <a class="footer-link" href="https://instagram.com/prof.felipecerqueira" target="_blank">◎ Prof. Felipe Cerqueira</a>
-      <a class="footer-link" href="https://instagram.com/ortoflix" target="_blank">◎ OrtoFlix</a>
+function Slider({ label, value, unit, min, max, step, onChange }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="font-mono text-xs uppercase tracking-widest" style={{ color: "#8A94A0" }}>{label}</label>
+        <span className="font-mono text-sm px-2 py-0.5 rounded" style={{ background: "#0F1318", color: "#E8892C", border: "1px solid #3A4650" }}>
+          {value} {unit}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full"
+      />
     </div>
-  </footer>
+  );
+}
+
+
+/* =========================================================================
+   PALAVRAS CRUZADAS — motor de geração + interface de jogo.
+   Para criar um novo banco de palavras, monte um array de
+   { answer, clue } e chame generateCrossword(words) — o layout é
+   calculado automaticamente (posições, interseções, numeração).
+   ========================================================================= */
+
+function normalizeAnswer(word) {
+  return word
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function generateCrossword(rawWords) {
+  const words = rawWords
+    .map((w) => ({ ...w, answer: normalizeAnswer(w.answer) }))
+    .sort((a, b) => b.answer.length - a.answer.length);
+
+  const cells = new Map();
+  const placements = [];
+
+  function canPlace(word, x, y, dir) {
+    let intersections = 0;
+    for (let i = 0; i < word.length; i++) {
+      const cx = dir === "H" ? x + i : x;
+      const cy = dir === "V" ? y + i : y;
+      const key = `${cx},${cy}`;
+      const existing = cells.get(key);
+      if (existing) {
+        if (existing !== word[i]) return null;
+        intersections++;
+      } else {
+        if (dir === "H") {
+          if (cells.has(`${cx},${cy - 1}`) || cells.has(`${cx},${cy + 1}`)) return null;
+        } else {
+          if (cells.has(`${cx - 1},${cy}`) || cells.has(`${cx + 1},${cy}`)) return null;
+        }
+      }
+    }
+    const beforeX = dir === "H" ? x - 1 : x;
+    const beforeY = dir === "V" ? y - 1 : y;
+    const afterX = dir === "H" ? x + word.length : x;
+    const afterY = dir === "V" ? y + word.length : y;
+    if (cells.has(`${beforeX},${beforeY}`) || cells.has(`${afterX},${afterY}`)) return null;
+    return intersections;
+  }
+
+  function place(word, x, y, dir) {
+    for (let i = 0; i < word.length; i++) {
+      const cx = dir === "H" ? x + i : x;
+      const cy = dir === "V" ? y + i : y;
+      cells.set(`${cx},${cy}`, word[i]);
+    }
+  }
+
+  function tryPlaceAgainstExisting(w) {
+    let best = null;
+    for (const placed of placements) {
+      for (let i = 0; i < w.answer.length; i++) {
+        for (let j = 0; j < placed.answer.length; j++) {
+          if (w.answer[i] !== placed.answer[j]) continue;
+          const newDir = placed.dir === "H" ? "V" : "H";
+          let x, y;
+          if (placed.dir === "H") {
+            x = placed.x + j;
+            y = placed.y - i;
+          } else {
+            x = placed.x - i;
+            y = placed.y + j;
+          }
+          const score = canPlace(w.answer, x, y, newDir);
+          if (score !== null && score > 0) {
+            if (!best || score > best.score) best = { x, y, dir: newDir, score };
+          }
+        }
+      }
+    }
+    return best;
+  }
+
+  place(words[0].answer, 0, 0, "H");
+  placements.push({ ...words[0], x: 0, y: 0, dir: "H" });
+
+  for (let idx = 1; idx < words.length; idx++) {
+    const best = tryPlaceAgainstExisting(words[idx]);
+    if (best) {
+      place(words[idx].answer, best.x, best.y, best.dir);
+      placements.push({ ...words[idx], x: best.x, y: best.y, dir: best.dir });
+    }
+  }
+  const placedAnswers = new Set(placements.map((p) => p.answer));
+  for (const w of words.filter((w) => !placedAnswers.has(w.answer))) {
+    const best = tryPlaceAgainstExisting(w);
+    if (best) {
+      place(w.answer, best.x, best.y, best.dir);
+      placements.push({ ...w, x: best.x, y: best.y, dir: best.dir });
+    }
+  }
+
+  let minX = 0, minY = 0, maxX = 0, maxY = 0;
+  for (const p of placements) {
+    const endX = p.dir === "H" ? p.x + p.answer.length - 1 : p.x;
+    const endY = p.dir === "V" ? p.y + p.answer.length - 1 : p.y;
+    minX = Math.min(minX, p.x, endX);
+    minY = Math.min(minY, p.y, endY);
+    maxX = Math.max(maxX, p.x, endX);
+    maxY = Math.max(maxY, p.y, endY);
+  }
+  const normalized = placements.map((p) => ({ ...p, x: p.x - minX, y: p.y - minY }));
+  const width = maxX - minX + 1;
+  const height = maxY - minY + 1;
+
+  // numeração: ordena os pontos de início em ordem de leitura (linha, depois coluna)
+  const starts = [...normalized].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  const numberByCoord = new Map();
+  let n = 0;
+  for (const p of starts) {
+    const key = `${p.x},${p.y}`;
+    if (!numberByCoord.has(key)) {
+      n++;
+      numberByCoord.set(key, n);
+    }
+  }
+  const numbered = normalized.map((p) => ({ ...p, number: numberByCoord.get(`${p.x},${p.y}`) }));
+
+  return { placements: numbered, width, height };
+}
+
+const KINESIO_WORDS = [
+  { answer: "ALAVANCA", clue: "Sistema mecânico formado por uma barra rígida que gira em torno de um ponto fixo." },
+  { answer: "TORQUE", clue: "Medida da força de rotação em torno de um eixo; também chamado de momento de força." },
+  { answer: "FULCRO", clue: "Ponto de apoio ou eixo de rotação de uma alavanca." },
+  { answer: "AGONISTA", clue: "Músculo principal responsável por produzir um movimento específico." },
+  { answer: "ANTAGONISTA", clue: "Músculo que se opõe à ação do motor primário." },
+  { answer: "SINERGISTA", clue: "Músculo que auxilia o agonista a realizar o movimento com eficiência." },
+  { answer: "ISOMETRICA", clue: "Tipo de contração muscular em que o comprimento do músculo não se altera." },
+  { answer: "CONCENTRICA", clue: "Tipo de contração em que o músculo se encurta durante a produção de força." },
+  { answer: "EXCENTRICA", clue: "Tipo de contração em que o músculo se alonga enquanto produz força." },
+  { answer: "GONIOMETRO", clue: "Instrumento utilizado para medir a amplitude de movimento articular." },
+  { answer: "SAGITAL", clue: "Plano que divide o corpo em lados direito e esquerdo." },
+  { answer: "TRANSVERSO", clue: "Plano que divide o corpo em partes superior e inferior." },
+  { answer: "CINETICA", clue: "Ramo da biomecânica que estuda as forças que causam o movimento." },
+  { answer: "CINEMATICA", clue: "Ramo da biomecânica que descreve o movimento sem considerar suas causas." },
+];
+
+function PalavrasCruzadas({ onBack }) {
+  const { useState, useMemo, useRef } = React;
+  const puzzle = useMemo(() => generateCrossword(KINESIO_WORDS), []);
+  const [values, setValues] = useState({});
+  const [checked, setChecked] = useState(false);
+  const inputRefs = useRef({});
+
+  const solutionByCell = useMemo(() => {
+    const map = new Map();
+    for (const p of puzzle.placements) {
+      for (let i = 0; i < p.answer.length; i++) {
+        const x = p.dir === "H" ? p.x + i : p.x;
+        const y = p.dir === "V" ? p.y + i : p.y;
+        map.set(`${x},${y}`, p.answer[i]);
+      }
+    }
+    return map;
+  }, [puzzle]);
+
+  const startNumberByCell = useMemo(() => {
+    const map = new Map();
+    for (const p of puzzle.placements) {
+      map.set(`${p.x},${p.y}`, p.number);
+    }
+    return map;
+  }, [puzzle]);
+
+  const uniqueCells = useMemo(() => {
+    const list = [...solutionByCell.keys()].map((key) => {
+      const [x, y] = key.split(",").map(Number);
+      return { key, x, y };
+    });
+    list.sort((a, b) => a.y - b.y || a.x - b.x);
+    return list;
+  }, [solutionByCell]);
+
+  const cellOrder = useMemo(() => {
+    // ordem de tabulação: por palavra, na ordem de leitura (sem repetir interseções)
+    const ordered = [];
+    const seen = new Set();
+    const sorted = [...puzzle.placements].sort((a, b) => a.number - b.number || (a.dir === "H" ? -1 : 1));
+    for (const p of sorted) {
+      for (let i = 0; i < p.answer.length; i++) {
+        const x = p.dir === "H" ? p.x + i : p.x;
+        const y = p.dir === "V" ? p.y + i : p.y;
+        const key = `${x},${y}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          ordered.push(key);
+        }
+      }
+    }
+    return ordered;
+  }, [puzzle]);
+
+  function handleChange(key, raw) {
+    const letter = normalizeAnswer(raw).slice(-1);
+    setValues((v) => ({ ...v, [key]: letter }));
+    setChecked(false);
+    if (letter) {
+      const idx = cellOrder.indexOf(key);
+      const next = cellOrder[idx + 1];
+      if (next && inputRefs.current[next]) inputRefs.current[next].focus();
+    }
+  }
+
+  function handleKeyDown(key, e) {
+    if (e.key === "Backspace" && !values[key]) {
+      const idx = cellOrder.indexOf(key);
+      const prev = cellOrder[idx - 1];
+      if (prev && inputRefs.current[prev]) inputRefs.current[prev].focus();
+    }
+  }
+
+  function verificar() {
+    setChecked(true);
+  }
+
+  function limpar() {
+    setValues({});
+    setChecked(false);
+  }
+
+  const totalCells = solutionByCell.size;
+  const correctCells = [...solutionByCell.entries()].filter(([k, letter]) => values[k] === letter).length;
+  const completo = checked && correctCells === totalCells;
+
+  const cellSize = 30;
+
+  const horizontais = puzzle.placements.filter((p) => p.dir === "H").sort((a, b) => a.number - b.number);
+  const verticais = puzzle.placements.filter((p) => p.dir === "V").sort((a, b) => a.number - b.number);
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      <div
+        className="px-5 pb-4 border-b flex items-center justify-between"
+        style={{ borderColor: "#E5E5EA", background: "#FFFFFF", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "#1D1D1F" }}>Palavras Cruzadas</h1>
+          <p className="text-sm" style={{ color: "#6E6E73" }}>Cinesiologia e Biomecânica</p>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+            style={{ background: "#F5F5F7", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            ← FisioLab
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 max-w-3xl mx-auto">
+        <div className="overflow-x-auto pb-2">
+          <div
+            style={{
+              position: "relative",
+              width: puzzle.width * cellSize,
+              height: puzzle.height * cellSize,
+              margin: "0 auto",
+            }}
+          >
+            {uniqueCells.map(({ key, x, y }) => {
+              const startNumber = startNumberByCell.get(key) || null;
+              const value = values[key] || "";
+              const solution = solutionByCell.get(key);
+              const isCorrect = checked && value === solution;
+              const isWrong = checked && value && value !== solution;
+              return (
+                <div
+                  key={key}
+                  style={{
+                    position: "absolute",
+                    left: x * cellSize,
+                    top: y * cellSize,
+                    width: cellSize,
+                    height: cellSize,
+                  }}
+                >
+                  {startNumber && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 1,
+                        left: 2,
+                        fontSize: 8,
+                        color: "#9A9AA0",
+                        zIndex: 2,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {startNumber}
+                    </span>
+                  )}
+                  <input
+                    ref={(el) => (inputRefs.current[key] = el)}
+                    value={value}
+                    onChange={(e) => handleChange(key, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(key, e)}
+                    maxLength={1}
+                    className="text-center font-semibold"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      border: `1px solid ${isCorrect ? "#22C55E" : isWrong ? "#EF4444" : "#D2D2D7"}`,
+                      background: isCorrect ? "#DCFCE7" : isWrong ? "#FEE2E2" : "#FFFFFF",
+                      color: "#1D1D1F",
+                      fontSize: 14,
+                      outline: "none",
+                      padding: 0,
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-center my-4">
+          <button
+            onClick={verificar}
+            className="text-sm font-semibold px-5 py-2.5 rounded-full"
+            style={{ background: "#22C55E", color: "#FFFFFF" }}
+          >
+            Verificar
+          </button>
+          <button
+            onClick={limpar}
+            className="text-sm font-medium px-5 py-2.5 rounded-full"
+            style={{ background: "#FFFFFF", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            Limpar
+          </button>
+        </div>
+
+        {checked && (
+          <p className="text-center text-sm mb-4" style={{ color: completo ? "#22C55E" : "#6E6E73" }}>
+            {completo ? "🎉 Completo! Todas as respostas corretas." : `${correctCells} de ${totalCells} letras corretas.`}
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#22C55E" }}>Horizontais</p>
+            {horizontais.map((p) => (
+              <p key={p.number + "H"} className="text-sm mb-2" style={{ color: "#1D1D1F" }}>
+                <strong>{p.number}.</strong> {p.clue}
+              </p>
+            ))}
+          </div>
+          <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#22C55E" }}>Verticais</p>
+            {verticais.map((p) => (
+              <p key={p.number + "V"} className="text-sm mb-2" style={{ color: "#1D1D1F" }}>
+                <strong>{p.number}.</strong> {p.clue}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   TELA INICIAL — catálogo de ferramentas do FisioLab.
+   Para adicionar uma nova ferramenta no futuro: crie o componente e
+   acrescente uma entrada no array TOOLS abaixo.
+   ========================================================================= */
+
+const TOOLS = [
+  {
+    id: "correntes",
+    title: "Simulador de Correntes",
+    subtitle: "Eletroterapia",
+    description: "Visualize tipos de corrente elétrica e seus parâmetros em tempo real.",
+    component: SimuladorCorrentes,
+  },
+  {
+    id: "palavras-cruzadas",
+    title: "Palavras Cruzadas",
+    subtitle: "Cinesiologia e Biomecânica",
+    description: "Revise os termos fundamentais de cinesiologia jogando.",
+    component: PalavrasCruzadas,
+  },
+];
+
+// Ferramentas externas — abrem em outra aba (ex.: artifacts publicados no Claude.ai)
+const EXTERNAL_TOOLS = [
+  {
+    id: "consultorio-virtual",
+    title: "Consultório Virtual",
+    subtitle: "Raciocínio clínico",
+    description: "Avalie casos clínicos simulados com IA e pratique seu diagnóstico.",
+    url: "https://claude.ai/public/artifacts/0e215812-fa6f-484a-8c05-25e0c19801f6",
+  },
+];
+
+function EmailIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M2 6l10 7 10-7" />
+    </svg>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function ContactFooter({ dark }) {
+  const textColor = dark ? "#8A94A0" : "#A1A1A6";
+  const pillBg = dark ? "#171B21" : "#FFFFFF";
+  const pillBorder = dark ? "#3A4650" : "#E5E5EA";
+  const pillText = dark ? "#DCE1E5" : "#1D1D1F";
+  const pillStyle = { background: pillBg, border: `1px solid ${pillBorder}`, color: pillText };
+  return (
+    <div className="mt-8 text-center px-4 pb-8">
+      <p className="text-xs mb-3" style={{ color: textColor }}>
+        Desenvolvido por Prof. Felipe Cerqueira
+      </p>
+      <div className="flex justify-center mb-2">
+        <a href="mailto:suporte@ortoflix.com" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={pillStyle}>
+          <EmailIcon /> suporte@ortoflix.com
+        </a>
+      </div>
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <a href="https://instagram.com/felipe_cerqueira" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={pillStyle}>
+          <InstagramIcon /> Prof. Felipe Cerqueira
+        </a>
+        <a href="https://instagram.com/ortoflix" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={pillStyle}>
+          <InstagramIcon /> OrtoFlix
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function ToolCard({ tool, onSelect }) {
+  return (
+    <button
+      onClick={() => onSelect(tool.id)}
+      className="text-left rounded-2xl p-5 w-full transition-shadow hover:shadow-md"
+      style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}
+    >
+      <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#22C55E" }}>
+        {tool.subtitle}
+      </p>
+      <h3 className="text-lg font-semibold mb-1" style={{ color: "#1D1D1F" }}>
+        {tool.title}
+      </h3>
+      <p className="text-sm leading-relaxed" style={{ color: "#6E6E73" }}>
+        {tool.description}
+      </p>
+    </button>
+  );
+}
+
+function ExternalToolCard({ tool }) {
+  return (
+    <a
+      href={tool.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-left rounded-2xl p-5 w-full block transition-shadow hover:shadow-md"
+      style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#22C55E" }}>
+          {tool.subtitle}
+        </p>
+        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: "#6E6E73", background: "#F2F2F7" }}>
+          abre em outra aba
+        </span>
+      </div>
+      <h3 className="text-lg font-semibold mb-1" style={{ color: "#1D1D1F" }}>
+        {tool.title} ↗
+      </h3>
+      <p className="text-sm leading-relaxed" style={{ color: "#6E6E73" }}>
+        {tool.description}
+      </p>
+    </a>
+  );
+}
+
+function CubeIcon({ size = 56 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      <path d="M50,8 L86.4,29 L50,50 L13.6,29 Z" fill="#FFFFFF" stroke="#12233A" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M13.6,29 L50,50 L50,92 L13.6,71 Z" fill="#F2F2F2" stroke="#12233A" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M50,50 L86.4,29 L86.4,71 L50,92 Z" fill="#22C55E" stroke="#12233A" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function Home({ onSelect }) {
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      <div className="px-5 pb-6 flex items-center justify-center gap-3" style={{ paddingTop: "calc(env(safe-area-inset-top) + 2.5rem)" }}>
+        <CubeIcon size={56} />
+        <div className="text-left">
+          <h1 className="text-4xl leading-none" style={{ color: "#1D1D1F", fontFamily: "'Poppins', sans-serif", fontWeight: 800 }}>
+            Fisio<span style={{ color: "#22C55E" }}>Lab</span>
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "#6E6E73" }}>
+            by OrtoFlix — Ambiente de Estudo
+          </p>
+        </div>
+      </div>
+
+      <div className="px-5 pb-6 max-w-2xl mx-auto">
+        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#6E6E73" }}>
+          Ferramentas
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {TOOLS.map((tool) => (
+            <ToolCard key={tool.id} tool={tool} onSelect={onSelect} />
+          ))}
+          {EXTERNAL_TOOLS.map((tool) => (
+            <ExternalToolCard key={tool.id} tool={tool} />
+          ))}
+        </div>
+
+        <div className="mt-8 rounded-2xl p-6 text-center" style={{ background: "#1D1D1F" }}>
+          <img
+            src="ortoflix-logo.png"
+            alt="OrtoFlix"
+            style={{ maxWidth: "170px", width: "50%", height: "auto", margin: "0 auto 16px" }}
+          />
+          <p className="text-sm leading-relaxed mb-4" style={{ color: "#A1A1A6" }}>
+            O maior streaming de fisioterapia ortopédica do Brasil. Conteúdo
+            em série para estudantes e profissionais.
+          </p>
+          <a
+            href="https://ortoflix.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-sm font-semibold px-5 py-2.5 rounded-full"
+            style={{ background: "#22C55E", color: "#FFFFFF" }}
+          >
+            Acessar OrtoFlix →
+          </a>
+        </div>
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [selected, setSelected] = useState(null);
+  const tool = TOOLS.find((t) => t.id === selected);
+
+  if (!selected || !tool) {
+    return <Home onSelect={setSelected} />;
+  }
+
+  const ToolComponent = tool.component;
+  return <ToolComponent onBack={() => setSelected(null)} />;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
