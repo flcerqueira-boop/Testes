@@ -10,97 +10,121 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0a1628; --surface: rgba(255,255,255,0.06); --surface2: rgba(255,255,255,0.10);
-      --border: rgba(255,255,255,0.10); --accent: #f97316; --accent-soft: rgba(249,115,22,0.15);
-      --text: #e6edf3; --text-muted: rgba(255,255,255,0.50); --text-subtle: rgba(255,255,255,0.25);
-      --red: #E8192C; --red-soft: rgba(232,25,44,0.12); --radius-lg: 20px;
+      --bg: #f2f2f7;
+      --surface: #ffffff;
+      --border: #e5e5ea;
+      --accent: #f97316;
+      --accent-soft: rgba(249,115,22,0.10);
+      --text: #111111;
+      --text-muted: #666666;
+      --text-subtle: #999999;
+      --red: #E8192C;
+      --radius: 14px;
     }
     body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
-    header { padding: 32px 24px 24px; display: flex; align-items: center; justify-content: center; background: transparent; }
-    .header-inner { display: flex; align-items: center; gap: 16px; }
-    .header-icon { width: 60px; height: 60px; border-radius: 16px; flex-shrink: 0; }
-    .header-logo { height: 48px; width: auto; }
-    main { flex: 1; max-width: 480px; margin: 0 auto; padding: 8px 20px 60px; width: 100%; }
-    .modules-label { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; margin-top: 8px; }
-    .module-card { display: flex; align-items: center; gap: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 18px; margin-bottom: 10px; text-decoration: none; color: var(--text); transition: all 0.2s; position: relative; overflow: hidden; }
-    .module-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); opacity: 0; transition: opacity 0.2s; }
-    .module-card:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-2px); }
-    .module-card:hover::before { opacity: 1; }
-    .module-icon { width: 50px; height: 50px; border-radius: 14px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
-    .module-icon.blue { background: rgba(88,166,255,0.15); }
-    .module-icon.green { background: rgba(63,185,80,0.15); }
-    .module-info { flex: 1; }
-    .module-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 3px; line-height: 1.3; }
-    .module-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-    .module-arrow { color: var(--text-subtle); font-size: 18px; flex-shrink: 0; transition: transform 0.2s, color 0.2s; }
-    .module-card:hover .module-arrow { transform: translateX(4px); color: var(--accent); }
-    .module-tag { display: inline-block; background: rgba(63,185,80,0.15); color: #3fb950; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; font-family: 'Syne', sans-serif; letter-spacing: 0.5px; margin-top: 5px; }
-    .module-tag.ext { background: rgba(88,166,255,0.15); color: #58a6ff; }
-    .ortoflix-card { display: flex; align-items: center; gap: 18px; background: var(--surface); border: 1px solid var(--red); border-radius: var(--radius-lg); padding: 20px 18px; margin-top: 10px; text-decoration: none; color: var(--text); transition: all 0.2s; position: relative; overflow: hidden; }
-    .ortoflix-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--red); opacity: 0; transition: opacity 0.2s; }
-    .ortoflix-card:hover { background: var(--surface2); transform: translateY(-2px); }
-    .ortoflix-card:hover::before { opacity: 1; }
-    .ortoflix-card:hover .module-arrow { transform: translateX(4px); color: var(--red); }
-    .ortoflix-icon { width: 50px; height: 50px; border-radius: 14px; background: var(--red-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .ortoflix-logo-img { width: 36px; height: auto; }
-    footer { text-align: center; padding: 32px 20px; border-top: 1px solid var(--border); }
-    .footer-dev { color: var(--text-muted); font-size: 13px; margin-bottom: 16px; }
+
+    /* HEADER */
+    header { padding: 28px 20px 20px; background: var(--bg); }
+    .header-inner { max-width: 480px; margin: 0 auto; display: flex; align-items: center; gap: 14px; }
+    .header-icon { width: 56px; height: 56px; border-radius: 14px; flex-shrink: 0; }
+    .header-text { display: flex; flex-direction: column; gap: 2px; }
+    .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 30px; color: var(--text); line-height: 1; letter-spacing: -0.5px; }
+    .logo span { color: var(--accent); }
+    .logo-sub { font-size: 13px; color: var(--text-muted); font-weight: 400; }
+
+    /* MAIN */
+    main { flex: 1; max-width: 480px; margin: 0 auto; padding: 20px 20px 60px; width: 100%; }
+
+    .modules-label {
+      font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+      color: var(--text-subtle); text-transform: uppercase; letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+
+    /* CARDS */
+    .module-card {
+      display: block;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 18px 18px;
+      margin-bottom: 10px;
+      text-decoration: none; color: var(--text);
+      transition: all 0.15s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .module-card:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.10); }
+
+    .module-category {
+      font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+      color: var(--accent); text-transform: uppercase; letter-spacing: 1px;
+      margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .module-tag-ext { font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 400; color: var(--text-subtle); text-transform: none; letter-spacing: 0; }
+    .module-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px; margin-bottom: 6px; line-height: 1.3; display: flex; align-items: center; gap: 6px; }
+    .module-desc { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ORTOFLIX */
+    .ortoflix-card {
+      background: #111111;
+      border-radius: var(--radius);
+      padding: 32px 24px;
+      text-align: center;
+      margin-top: 16px;
+    }
+    .ortoflix-logo-img { height: 36px; width: auto; margin-bottom: 14px; }
+    .ortoflix-desc { color: rgba(255,255,255,0.55); font-size: 14px; line-height: 1.7; margin-bottom: 20px; }
+    .btn-ortoflix { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: white; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; transition: all 0.2s; }
+    .btn-ortoflix:hover { background: #ea6c0a; }
+
+    /* FOOTER */
+    footer { text-align: center; padding: 28px 20px; }
+    .footer-dev { color: var(--text-subtle); font-size: 13px; margin-bottom: 14px; }
     .footer-links { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-    .footer-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 12px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; transition: all 0.2s; }
+    .footer-link { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); text-decoration: none; font-size: 12px; padding: 7px 14px; border: 1px solid var(--border); border-radius: 20px; transition: all 0.2s; background: var(--surface); }
     .footer-link:hover { border-color: var(--accent); color: var(--accent); }
   </style>
 </head>
 <body>
+
   <header>
     <div class="header-inner">
       <img class="header-icon" src="icon-hub.png" alt="Fisio+" />
-      <img class="header-logo" src="logo-fisioplus.png" alt="Fisio+ by OrtoFlix" />
+      <div class="header-text">
+        <div class="logo">Fisio<span>+</span></div>
+        <div class="logo-sub">by OrtoFlix — Portal do Fisioterapeuta</div>
+      </div>
     </div>
   </header>
 
   <main>
-    <div class="modules-label">Ferramentas disponíveis</div>
+    <div class="modules-label">Ferramentas</div>
 
     <a class="module-card" href="https://fisiomais.ortoflix.com" target="_blank">
-      <div class="module-icon">🏋️</div>
-      <div class="module-info">
-        <div class="module-name">Exercícios Domiciliares</div>
-        <div class="module-desc">Prescreva planos personalizados e envie por link para o paciente.</div>
-        <span class="module-tag">✓ Disponível</span>
-      </div>
-      <div class="module-arrow">→</div>
+      <div class="module-category">Exercícios</div>
+      <div class="module-name">Exercícios Domiciliares</div>
+      <div class="module-desc">Prescreva planos personalizados e envie por link para o paciente.</div>
     </a>
 
     <a class="module-card" href="https://fisioq.ortoflix.com" target="_blank">
-      <div class="module-icon blue">📋</div>
-      <div class="module-info">
-        <div class="module-name">Questionários Funcionais</div>
-        <div class="module-desc">IKDC, Lysholm, WOMAC, FAAM, DASH, Oswestry e mais — com score automático.</div>
-        <span class="module-tag">✓ Disponível</span>
-      </div>
-      <div class="module-arrow">→</div>
+      <div class="module-category">Avaliação Funcional</div>
+      <div class="module-name">Questionários Funcionais</div>
+      <div class="module-desc">IKDC, Lysholm, WOMAC, FAAM, DASH, Oswestry e mais — com score automático.</div>
     </a>
 
     <a class="module-card" href="https://cbdf.coffito.gov.br" target="_blank">
-      <div class="module-icon green">🩺</div>
-      <div class="module-info">
-        <div class="module-name">Classificação Brasileira de Diagnóstico Fisioterapêutico</div>
-        <div class="module-desc">CBDF — Sistema oficial de diagnóstico do COFFITO.</div>
-        <span class="module-tag ext">↗ Externo</span>
+      <div class="module-category">
+        <span>Diagnóstico</span>
+        <span class="module-tag-ext">abre em outra aba</span>
       </div>
-      <div class="module-arrow">→</div>
+      <div class="module-name">Classificação Brasileira de Diagnóstico Fisioterapêutico ↗</div>
+      <div class="module-desc">CBDF — Sistema oficial de diagnóstico do COFFITO.</div>
     </a>
 
-    <a class="ortoflix-card" href="https://www.ortoflix.com" target="_blank">
-      <div class="ortoflix-icon">
-        <img class="ortoflix-logo-img" src="logo-ortoflix.png" alt="OrtoFlix" />
-      </div>
-      <div class="module-info">
-        <div class="module-name">OrtoFlix</div>
-        <div class="module-desc">O maior streaming de fisioterapia ortopédica do Brasil.</div>
-      </div>
-      <div class="module-arrow">→</div>
-    </a>
+    <div class="ortoflix-card">
+      <img class="ortoflix-logo-img" src="logo-ortoflix.png" alt="OrtoFlix" />
+      <p class="ortoflix-desc">O maior streaming de fisioterapia ortopédica do Brasil. Conteúdo em série para estudantes e profissionais.</p>
+      <a class="btn-ortoflix" href="https://www.ortoflix.com" target="_blank">Acessar OrtoFlix →</a>
+    </div>
   </main>
 
   <footer>
@@ -111,5 +135,6 @@
       <a class="footer-link" href="https://instagram.com/ortoflix" target="_blank">◎ OrtoFlix</a>
     </div>
   </footer>
+
 </body>
 </html>
