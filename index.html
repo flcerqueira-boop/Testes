@@ -312,66 +312,67 @@
 
 <!-- HUB SCREEN -->
 <div id="hub-screen" class="hidden">
-  <div style="min-height:100vh;background:#f2f2f7;display:flex;flex-direction:column;">
+  <div style="min-height:100vh;background:var(--bg);display:flex;flex-direction:column;">
 
     <!-- Header -->
-    <div style="padding:32px 24px 20px;background:#f2f2f7;">
-      <div style="max-width:480px;margin:0 auto;display:flex;align-items:center;gap:16px;">
-        <div style="width:64px;height:64px;background:var(--accent-soft);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;flex-shrink:0;">🏥</div>
-        <div>
-          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:36px;line-height:1;letter-spacing:-1px;">Fisio<span style="color:var(--accent)">+</span></div>
-          <div style="font-size:14px;color:#666;margin-top:3px;">by OrtoFlix — Portal do Fisioterapeuta</div>
-        </div>
+    <div style="position:sticky;top:0;z-index:10;background:rgba(13,17,23,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;color:var(--text);">Fisio<span style="color:var(--accent)">+</span></div>
+        <span style="font-size:12px;color:var(--text-muted);">by OrtoFlix</span>
       </div>
+      <button onclick="doLogout()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;">Sair</button>
     </div>
 
     <!-- Cards -->
-    <div style="flex:1;max-width:480px;margin:0 auto;padding:8px 24px 60px;width:100%;">
+    <div style="flex:1;max-width:600px;margin:0 auto;padding:32px 20px 60px;width:100%;">
 
-      <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px;">Ferramentas</div>
+      <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text-subtle);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;">Ferramentas disponíveis</div>
 
       <!-- Exercícios Domiciliares -->
-      <div onclick="enterApp()" style="display:block;background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:10px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,0.06);transition:all 0.15s;">
-        <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Exercícios</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:6px;">Exercícios Domiciliares</div>
-        <div style="font-size:14px;color:#666;line-height:1.5;">Prescreva planos personalizados e envie por link para o paciente.</div>
+      <div onclick="enterApp()" style="display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:50px;height:50px;border-radius:14px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🏋️</div>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Exercícios Domiciliares</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Prescreva planos personalizados e envie por link para o paciente.</div>
+        </div>
+        <div style="color:var(--text-subtle);font-size:18px;">→</div>
       </div>
 
       <!-- Questionários Funcionais -->
-      <a href="https://fisioq.ortoflix.com" target="_blank" style="display:block;background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:10px;text-decoration:none;color:#111;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-        <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Avaliação Funcional</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:6px;">Questionários Funcionais</div>
-        <div style="font-size:14px;color:#666;line-height:1.5;">IKDC, Lysholm, WOMAC, FAAM, DASH, Oswestry e mais — com score automático.</div>
+      <a href="https://fisioq.ortoflix.com" target="_blank" style="display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:50px;height:50px;border-radius:14px;background:rgba(88,166,255,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📋</div>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Questionários Funcionais</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">IKDC, Lysholm, WOMAC, FAAM, DASH, Oswestry e mais — com score automático.</div>
+        </div>
+        <div style="color:var(--text-subtle);font-size:18px;">→</div>
       </a>
 
       <!-- CBDF -->
-      <a href="https://cbdf.coffito.gov.br" target="_blank" style="display:block;background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:10px;text-decoration:none;color:#111;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;">Diagnóstico</div>
-          <div style="font-size:11px;color:#999;">abre em outra aba</div>
+      <a href="https://cbdf.coffito.gov.br" target="_blank" style="display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="width:50px;height:50px;border-radius:14px;background:rgba(63,185,80,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🩺</div>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Classificação Brasileira de Diagnóstico Fisioterapêutico ↗</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">CBDF — Sistema oficial de diagnóstico do COFFITO.</div>
         </div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:6px;">Classificação Brasileira de Diagnóstico Fisioterapêutico ↗</div>
-        <div style="font-size:14px;color:#666;line-height:1.5;">CBDF — Sistema oficial de diagnóstico do COFFITO.</div>
       </a>
 
       <!-- Acessar OrtoFlix (Hotmart) -->
-      <a href="https://sso.hotmart.com/login" target="_blank" style="display:block;background:#fff;border-radius:14px;padding:18px 20px;margin-bottom:10px;text-decoration:none;color:#111;box-shadow:0 1px 3px rgba(0,0,0,0.06);border:1px solid rgba(232,25,44,0.2);">
-        <div style="font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#E8192C;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Minha Assinatura</div>
-        <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:17px;margin-bottom:6px;">Acessar minha plataforma OrtoFlix ↗</div>
-        <div style="font-size:14px;color:#666;line-height:1.5;">Acesse o conteúdo da sua assinatura OrtoFlix.</div>
+      <a href="https://sso.hotmart.com/login" target="_blank" style="display:flex;align-items:center;gap:16px;background:var(--surface);border:1px solid rgba(232,25,44,0.4);border-radius:16px;padding:20px;margin-bottom:12px;text-decoration:none;transition:all 0.2s;" onmouseover="this.style.borderColor='#E8192C'" onmouseout="this.style.borderColor='rgba(232,25,44,0.4)'">
+        <div style="width:50px;height:50px;border-radius:14px;background:rgba(232,25,44,0.12);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🎓</div>
+        <div style="flex:1;">
+          <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px;color:var(--text);margin-bottom:4px;">Acessar minha plataforma OrtoFlix ↗</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Acesse o conteúdo da sua assinatura OrtoFlix.</div>
+        </div>
       </a>
 
       <!-- Card Conheça OrtoFlix -->
-      <div style="background:#111;border-radius:14px;padding:32px 24px;text-align:center;margin-top:6px;">
+      <div style="background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);border:1px solid rgba(232,25,44,0.3);border-radius:16px;padding:32px 24px;text-align:center;margin-top:4px;">
         <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:28px;color:#E8192C;letter-spacing:2px;margin-bottom:12px;">ORTOFLIX</div>
-        <p style="color:rgba(255,255,255,0.55);font-size:14px;line-height:1.7;margin-bottom:20px;">O maior streaming de fisioterapia ortopédica do Brasil. Conteúdo em série para estudantes e profissionais.</p>
-        <a href="https://www.ortoflix.com" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:white;text-decoration:none;padding:12px 28px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">Conheça a OrtoFlix →</a>
+        <p style="color:var(--text-muted);font-size:14px;line-height:1.7;margin-bottom:20px;">O maior streaming de fisioterapia ortopédica do Brasil. Conteúdo em série para estudantes e profissionais.</p>
+        <a href="https://www.ortoflix.com" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:#E8192C;color:white;text-decoration:none;padding:12px 28px;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;">Conheça a OrtoFlix →</a>
       </div>
 
-      <!-- Sair -->
-      <div style="text-align:center;margin-top:24px;">
-        <button onclick="doLogout()" style="background:none;border:none;color:#999;font-size:13px;cursor:pointer;text-decoration:underline;">Sair</button>
-      </div>
     </div>
   </div>
 </div>
