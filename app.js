@@ -123,6 +123,7 @@ function showPendingScreen(rejected = false) {
 function showHub() {
   hide("auth-screen"); hide("pending-screen"); hide("patient-view"); hide("app");
   show("hub-screen");
+  updateHubGreeting();
 }
 
 window.enterApp = () => {
@@ -130,6 +131,16 @@ window.enterApp = () => {
   show("app");
   navigateTo("dashboard");
   loadFavorites();
+}
+
+function updateHubGreeting() {
+  const greeting = document.getElementById("hub-greeting");
+  if (!greeting || !currentUserData) return;
+  const name = currentUserData.name || "Profissional";
+  const firstName = name.split(" ")[0];
+  const hour = new Date().getHours();
+  const period = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  greeting.innerHTML = `👋 ${period}, <strong style="color:var(--text);">${firstName}</strong>! Bem-vindo ao seu portal clínico.`;
 }
 
 function showApp() {
