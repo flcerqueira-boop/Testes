@@ -1,0 +1,3309 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>FisioLab — Prof. Felipe Cerqueira</title>
+<meta name="description" content="FisioLab — ambiente de estudo e simulação para disciplinas de fisioterapia. Prof. Felipe Cerqueira." />
+<meta name="theme-color" content="#22C55E" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="FisioLab" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.7/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@800;900&family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&display=swap');
+  body { margin: 0; background: #F5F5F7; font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; }
+  .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
+  .font-mono { font-family: 'IBM Plex Mono', monospace; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect } = React;
+
+/* =========================================================================
+   FIREBASE — cadastro/login (liberação automática, sem confirmação por
+   e-mail) e coleta de leads (nome, e-mail, perfil aluno/professor).
+   ========================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyC29uyLP3YS-VMs8aFEwYe4qbgblGGP8eY",
+  authDomain: "fisiolab-a4835.firebaseapp.com",
+  projectId: "fisiolab-a4835",
+  storageBucket: "fisiolab-a4835.firebasestorage.app",
+  messagingSenderId: "395561821532",
+  appId: "1:395561821532:web:6a33520680d6f2df830d99",
+  measurementId: "G-VZLR1G737C",
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+function CadastroLogin() {
+  const [modo, setModo] = useState("login"); // "cadastro" | "login"
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [perfil, setPerfil] = useState("aluno"); // "aluno" | "professor"
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function traduzErro(e) {
+    const code = e && e.code;
+    const mapa = {
+      "auth/email-already-in-use": "Esse e-mail já tem cadastro. Tente fazer login.",
+      "auth/invalid-email": "E-mail inválido.",
+      "auth/weak-password": "A senha precisa ter pelo menos 6 caracteres.",
+      "auth/wrong-password": "Senha incorreta.",
+      "auth/user-not-found": "Não encontramos cadastro com esse e-mail.",
+      "auth/invalid-credential": "E-mail ou senha incorretos.",
+      "auth/unauthorized-domain": "Este domínio ainda não está autorizado no Firebase (Authentication → Settings → Authorized domains).",
+      "auth/operation-not-allowed": "Login por e-mail/senha não está habilitado no Firebase (Authentication → Sign-in method).",
+      "permission-denied": "Sem permissão para salvar no banco de dados (verifique as regras do Firestore).",
+    };
+    if (mapa[code]) return mapa[code];
+    return "Não foi possível concluir (" + (code || (e && e.message) || "erro desconhecido") + "). Tente novamente.";
+  }
+
+  async function handleCadastro() {
+    setError("");
+    if (!nome.trim() || !email.trim() || !senha) {
+      setError("Preencha nome, e-mail e senha.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email.trim(), senha);
+      await cred.user.updateProfile({ displayName: nome.trim() });
+      await db.collection("usuarios").doc(cred.user.uid).set({
+        nome: nome.trim(),
+        email: email.trim(),
+        perfil,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      // já autenticado automaticamente — sem etapa de confirmação por e-mail
+    } catch (e) {
+      setError(traduzErro(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLogin() {
+    setError("");
+    if (!email.trim() || !senha) {
+      setError("Preencha e-mail e senha.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await auth.signInWithEmailAndPassword(email.trim(), senha);
+    } catch (e) {
+      setError(traduzErro(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-5" style={{ background: "#F5F5F7" }}>
+      <div className="max-w-sm w-full rounded-2xl p-6" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <CubeIcon size={48} />
+          <div className="text-left">
+            <h1 className="text-3xl leading-none" style={{ color: "#1D1D1F", fontFamily: "'Poppins', sans-serif", fontWeight: 800 }}>
+              Fisio<span style={{ color: "#22C55E" }}>Lab</span>
+            </h1>
+            <p className="text-xs mt-1" style={{ color: "#6E6E73" }}>
+              by OrtoFlix — Ambiente de Estudo
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-center mb-4" style={{ color: "#9A9AA0" }}>
+          Ambiente gratuito de estudo com simuladores, jogos e casos clínicos para alunos e professores de fisioterapia.
+        </p>
+        <p className="text-sm text-center mb-5" style={{ color: "#6E6E73" }}>
+          {modo === "cadastro" ? "Crie sua conta para começar" : "Entre na sua conta"}
+        </p>
+
+        {modo === "cadastro" && (
+          <div className="mb-3">
+            <label className="text-xs font-medium block mb-1" style={{ color: "#6E6E73" }}>Nome</label>
+            <input
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="w-full rounded-lg px-3 py-2 text-sm border outline-none"
+              style={{ borderColor: "#E5E5EA" }}
+            />
+          </div>
+        )}
+
+        <div className="mb-3">
+          <label className="text-xs font-medium block mb-1" style={{ color: "#6E6E73" }}>E-mail</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-lg px-3 py-2 text-sm border outline-none"
+            style={{ borderColor: "#E5E5EA" }}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="text-xs font-medium block mb-1" style={{ color: "#6E6E73" }}>Senha</label>
+          <input
+            type="password"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (modo === "cadastro" ? handleCadastro() : handleLogin())}
+            className="w-full rounded-lg px-3 py-2 text-sm border outline-none"
+            style={{ borderColor: "#E5E5EA" }}
+          />
+        </div>
+
+        {modo === "cadastro" && (
+          <div className="mb-4">
+            <label className="text-xs font-medium block mb-1" style={{ color: "#6E6E73" }}>Você é...</label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPerfil("aluno")}
+                className="flex-1 py-2 rounded-lg text-sm font-medium"
+                style={perfil === "aluno" ? { background: "#22C55E", color: "#FFFFFF" } : { background: "#F5F5F7", color: "#6E6E73", border: "1px solid #E5E5EA" }}
+              >
+                Estudante
+              </button>
+              <button
+                onClick={() => setPerfil("professor")}
+                className="flex-1 py-2 rounded-lg text-sm font-medium"
+                style={perfil === "professor" ? { background: "#22C55E", color: "#FFFFFF" } : { background: "#F5F5F7", color: "#6E6E73", border: "1px solid #E5E5EA" }}
+              >
+                Professor
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && <p className="text-xs mb-3" style={{ color: "#EF4444" }}>{error}</p>}
+
+        <button
+          onClick={modo === "cadastro" ? handleCadastro : handleLogin}
+          disabled={loading}
+          className="w-full py-2.5 rounded-full text-sm font-semibold disabled:opacity-50"
+          style={{ background: "#22C55E", color: "#FFFFFF" }}
+        >
+          {loading ? "Aguarde..." : modo === "cadastro" ? "Criar conta" : "Entrar"}
+        </button>
+
+        <button
+          onClick={() => { setModo(modo === "cadastro" ? "login" : "cadastro"); setError(""); }}
+          className="w-full text-center text-xs mt-4"
+          style={{ color: "#6E6E73" }}
+        >
+          {modo === "cadastro" ? "Já tem conta? Entrar" : "Não tem conta? Criar agora"}
+        </button>
+      </div>
+      <div className="max-w-sm w-full">
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+function AuthGate() {
+  const [status, setStatus] = useState("loading"); // "loading" | "out" | "in"
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setCurrentUser(user);
+      setStatus(user ? "in" : "out");
+    });
+    return unsubscribe;
+  }, []);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center" style={{ background: "#F5F5F7" }}>
+        <p className="text-sm" style={{ color: "#6E6E73" }}>Carregando...</p>
+      </div>
+    );
+  }
+
+  if (status === "out") {
+    return <CadastroLogin />;
+  }
+
+  return <App user={currentUser} />;
+}
+
+
+/* =========================================================================
+   Design: painel de aparelho de eletroestimulação — tela tipo osciloscópio
+   com traço fósforo verde, chassi escuro, leitura em LCD mono.
+
+   Estrutura alinhada ao slide "Podem ser classificadas": tipo de corrente,
+   polaridade (resultante — polarizada/despolarizada), número de fases e
+   formato de onda são tratados como eixos que se combinam, não um menu único.
+   ========================================================================= */
+
+const TIPOS = [
+  { id: "cc", label: "Corrente Contínua (CC)" },
+  { id: "ca", label: "Corrente Alternada (CA)" },
+  { id: "pulsada", label: "Corrente Pulsada" },
+];
+
+const FORMATOS = [
+  { id: "quadrada", label: "Quadrada" },
+  { id: "triangular", label: "Triangular" },
+  { id: "sinusoidal", label: "Sinusoidal" },
+  { id: "trapezoidal", label: "Trapezoidal" },
+];
+
+function clinicalNote(tipo, numFases, simetria) {
+  if (tipo === "cc") return "Fluxo unidirecional constante. Base da iontoforese e de efeitos polares (atração/repulsão iônica sob os eletrodos). Sempre polarizada.";
+  if (tipo === "ca") return "Corrente sinusoidal bidirecional, sem componente polar líquido. Sempre despolarizada — não gera efeitos químicos cumulativos sob os eletrodos.";
+  if (tipo === "pulsada" && numFases === "mono") return "Pulsos unidirecionais, com período de repouso entre eles. Sempre polarizada — requer atenção à carga acumulada por fase.";
+  if (tipo === "pulsada" && numFases === "bi" && simetria === "simetrica") return "Cada fase é espelho da outra — carga líquida zero, despolarizada. Minimiza risco de irritação cutânea. Comum em TENS convencional.";
+  if (tipo === "pulsada" && numFases === "bi" && simetria === "assimetrica") return "Fases com amplitude/duração diferentes, mas carga balanceada (mesma área sob a curva) — despolarizada. Comum em NMES para contração muscular.";
+  return "";
+}
+
+function polaridadeResultante(tipo, numFases) {
+  if (tipo === "cc") return "polarizada";
+  if (tipo === "ca") return "despolarizada";
+  if (tipo === "pulsada" && numFases === "mono") return "polarizada";
+  return "despolarizada";
+}
+
+function SimuladorCorrentes({ onBack }) {
+  const [tipo, setTipo] = useState("pulsada");
+  const [numFases, setNumFases] = useState("bi");
+  const [simetria, setSimetria] = useState("simetrica");
+  const [formato, setFormato] = useState("quadrada");
+  const [polo, setPolo] = useState(1);
+
+  const [frequency, setFrequency] = useState(50);
+  const [pulseWidth, setPulseWidth] = useState(10);
+  const [phase2Width, setPhase2Width] = useState(20);
+  const [intensity, setIntensity] = useState(20);
+  const [showInfo, setShowInfo] = useState(false);
+  const [presentMode, setPresentMode] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(false);
+
+  const canvasRef = useRef(null);
+
+  const WINDOW_MS = 1000;
+  const MAX_MA = 100;
+
+  const showFases = tipo === "pulsada";
+  const showSimetria = tipo === "pulsada" && numFases === "bi";
+  const showFormato = tipo === "pulsada";
+  const showPolo = tipo === "cc";
+  const showFrequency = tipo !== "cc";
+  const showPulseWidth = tipo === "pulsada";
+  const showPhase2 = tipo === "pulsada" && numFases === "bi" && simetria === "assimetrica";
+
+  const polaridade = polaridadeResultante(tipo, numFases);
+
+  function addPhase(pts, tStart, durationMs, amplitude, shape) {
+    const push = (t, y) => pts.push({ t, y });
+    if (durationMs <= 0) return;
+    if (shape === "quadrada") {
+      push(tStart, 0);
+      push(tStart, amplitude);
+      push(tStart + durationMs, amplitude);
+      push(tStart + durationMs, 0);
+    } else if (shape === "triangular") {
+      push(tStart, 0);
+      push(tStart + durationMs / 2, amplitude);
+      push(tStart + durationMs, 0);
+    } else if (shape === "trapezoidal") {
+      const rise = durationMs * 0.25;
+      push(tStart, 0);
+      push(tStart + rise, amplitude);
+      push(tStart + durationMs - rise, amplitude);
+      push(tStart + durationMs, 0);
+    } else if (shape === "sinusoidal") {
+      const steps = 12;
+      for (let i = 0; i <= steps; i++) {
+        const t = tStart + (durationMs * i) / steps;
+        const y = amplitude * Math.sin((Math.PI * i) / steps);
+        push(t, y);
+      }
+    }
+  }
+
+  function buildPoints() {
+    const pts = [];
+    const push = (t, y) => pts.push({ t, y });
+
+    if (tipo === "cc") {
+      push(0, intensity * polo);
+      push(WINDOW_MS, intensity * polo);
+      return pts;
+    }
+
+    if (tipo === "ca") {
+      const steps = 600;
+      for (let i = 0; i <= steps; i++) {
+        const t = (WINDOW_MS * i) / steps;
+        const y = intensity * Math.sin((2 * Math.PI * frequency * t) / 1000);
+        push(t, y);
+      }
+      return pts;
+    }
+
+    const period = 1000 / frequency;
+    const pw1 = pulseWidth;
+    const pw2 = phase2Width;
+    const amp2 =
+      numFases === "bi"
+        ? simetria === "simetrica"
+          ? intensity
+          : (intensity * pulseWidth) / Math.max(phase2Width, 1)
+        : 0;
+
+    let t = 0;
+    push(0, 0);
+    while (t < WINDOW_MS) {
+      addPhase(pts, t, pw1, intensity, formato);
+      let cursor = t + pw1;
+      if (numFases === "bi") {
+        const dur2 = simetria === "simetrica" ? pw1 : pw2;
+        addPhase(pts, cursor, dur2, -amp2, formato);
+        cursor += dur2;
+      }
+      push(Math.min(cursor, WINDOW_MS), 0);
+      t = Math.max(t + period, cursor);
+      push(Math.min(t, WINDOW_MS), 0);
+    }
+    return pts;
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+    const padL = 58, padR = 16, padT = 16, padB = 28;
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#07130D";
+    ctx.fillRect(0, 0, W, H);
+
+    const yZero = padT + plotH / 2;
+    const xScale = plotW / WINDOW_MS;
+    const yScale = (plotH / 2) / MAX_MA;
+
+    ctx.strokeStyle = "rgba(74,255,140,0.14)";
+    ctx.lineWidth = 1;
+    const gridLinesX = 10;
+    for (let i = 0; i <= gridLinesX; i++) {
+      const x = padL + (plotW * i) / gridLinesX;
+      ctx.beginPath();
+      ctx.moveTo(x, padT);
+      ctx.lineTo(x, padT + plotH);
+      ctx.stroke();
+    }
+    const gridLinesY = 4;
+    for (let i = 0; i <= gridLinesY; i++) {
+      const y = padT + (plotH * i) / gridLinesY;
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.stroke();
+    }
+
+    ctx.strokeStyle = "rgba(74,255,140,0.35)";
+    ctx.beginPath();
+    ctx.moveTo(padL, yZero);
+    ctx.lineTo(padL + plotW, yZero);
+    ctx.stroke();
+
+    ctx.fillStyle = "#6FE3A3";
+    ctx.font = "13px 'IBM Plex Mono', monospace";
+    ctx.fillText(`+${MAX_MA} mA`, 4, padT + 8);
+    ctx.fillText(`-${MAX_MA} mA`, 4, padT + plotH);
+    ctx.fillText("0", 4, yZero + 3);
+    ctx.fillText(`${WINDOW_MS} ms (1 s)`, padL + plotW - 62, padT + plotH + 18);
+    ctx.fillText("0 ms", padL, padT + plotH + 18);
+
+    const pts = buildPoints();
+    ctx.strokeStyle = "#4AFF8C";
+    ctx.lineWidth = 2;
+    ctx.shadowColor = "#4AFF8C";
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    pts.forEach((p, i) => {
+      const x = padL + p.t * xScale;
+      const y = yZero - Math.max(-MAX_MA, Math.min(MAX_MA, p.y)) * yScale;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }, [tipo, numFases, simetria, formato, polo, frequency, pulseWidth, phase2Width, intensity, presentMode]);
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#12161B", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+        .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
+        .font-mono { font-family: 'IBM Plex Mono', monospace; }
+        input[type="range"] {
+          -webkit-appearance: none;
+          height: 4px;
+          border-radius: 2px;
+          background: #3A4650;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 16px; height: 16px; border-radius: 50%;
+          background: #E8892C; border: 2px solid #FFDCB0; cursor: pointer;
+          margin-top: -6px;
+        }
+        input[type="range"]::-moz-range-thumb {
+          width: 16px; height: 16px; border-radius: 50%;
+          background: #E8892C; border: 2px solid #FFDCB0; cursor: pointer;
+        }
+      `}</style>
+
+      {!presentMode && (
+        <div className="px-5 pb-4 border-b flex items-center justify-between" style={{ borderColor: "#262D35", background: "#171B21", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}>
+          <div>
+            <h1 className="font-display text-2xl" style={{ color: "#F2EFE6" }}>
+              SIMULADOR DE CORRENTES
+            </h1>
+            <p className="font-mono text-xs tracking-widest uppercase" style={{ color: "#E8892C" }}>
+              by OrtoFlix
+            </p>
+          </div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="font-mono text-xs px-3 py-1.5 rounded border whitespace-nowrap"
+              style={{ color: "#8A94A0", borderColor: "#3A4650", background: "#0F1318" }}
+            >
+              ← FisioLab
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className={presentMode ? "p-3 flex flex-col gap-3" : "p-4 md:p-6 grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 max-w-6xl mx-auto"}>
+        <div className="rounded-lg p-3 md:p-4 sticky top-2 z-10 relative" style={{ background: "#171B21", border: "1px solid #262D35" }}>
+          <button
+            onClick={() => { setPresentMode((v) => !v); setControlsOpen(false); }}
+            aria-label={presentMode ? "Sair do modo apresentação" : "Modo apresentação"}
+            title={presentMode ? "Sair do modo apresentação" : "Modo apresentação"}
+            className="absolute top-3 right-3 z-20 w-8 h-8 rounded flex items-center justify-center border"
+            style={{ color: "#E8892C", borderColor: "#3A4650", background: "#0F1318" }}
+          >
+            {presentMode ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 3H5a2 2 0 0 0-2 2v4M15 3h4a2 2 0 0 1 2 2v4M9 21H5a2 2 0 0 1-2-2v-4M15 21h4a2 2 0 0 0 2-2v-4" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 9V5a2 2 0 0 1 2-2h4M17 3h4a2 2 0 0 1 2 2v4M21 15v4a2 2 0 0 1-2 2h-4M7 21H3a2 2 0 0 1-2-2v-4" />
+              </svg>
+            )}
+          </button>
+          <div className="flex items-center justify-between mb-2 flex-wrap gap-2 pr-10">
+            <p className="font-mono text-xs uppercase tracking-widest" style={{ color: "#6FE3A3" }}>
+              Forma de onda
+            </p>
+            <p className="font-mono text-xs text-right" style={{ color: "#6FE3A3" }}>
+              {TIPOS.find((t) => t.id === tipo)?.label}
+              {showFases && (numFases === "mono" ? " · Monofásica" : ` · Bifásica ${simetria === "simetrica" ? "simétrica" : "assimétrica"}`)}
+              {showFormato && ` · ${FORMATOS.find((f) => f.id === formato)?.label}`}
+            </p>
+          </div>
+          <canvas
+            ref={canvasRef}
+            width={presentMode ? 1400 : 900}
+            height={presentMode ? 560 : 360}
+            className="w-full rounded"
+            style={{ background: "#07130D", border: "1px solid #1E3428" }}
+          />
+          <div className="flex items-center gap-3 mt-4 flex-wrap">
+            <span className="font-mono text-xs uppercase tracking-widest" style={{ color: "#8A94A0" }}>
+              Existe carga líquida?
+            </span>
+            <button
+              onClick={() => setShowInfo(true)}
+              aria-label="Sobre esta forma de onda"
+              className="w-5 h-5 rounded-full flex items-center justify-center font-mono text-xs"
+              style={{ background: "#0F1318", color: "#6FE3A3", border: "1px solid #3A4650" }}
+            >
+              i
+            </button>
+            <div className="flex gap-2">
+              <span
+                className="font-mono text-xs px-3 py-1.5 rounded border"
+                style={
+                  polaridade === "polarizada"
+                    ? { background: "#E8892C", color: "#171B21", borderColor: "#E8892C" }
+                    : { background: "#0F1318", color: "#5A6570", borderColor: "#3A4650" }
+                }
+              >
+                POLARIZADA
+              </span>
+              <span
+                className="font-mono text-xs px-3 py-1.5 rounded border"
+                style={
+                  polaridade === "despolarizada"
+                    ? { background: "#E8892C", color: "#171B21", borderColor: "#E8892C" }
+                    : { background: "#0F1318", color: "#5A6570", borderColor: "#3A4650" }
+                }
+              >
+                DESPOLARIZADA
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {showInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(7,19,13,0.75)" }} onClick={() => setShowInfo(false)}>
+            <div
+              className="max-w-sm w-full rounded-lg p-5"
+              style={{ background: "#171B21", border: "1px solid #262D35" }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-mono text-xs uppercase tracking-widest" style={{ color: "#6FE3A3" }}>
+                  Sobre esta forma de onda
+                </p>
+                <button
+                  onClick={() => setShowInfo(false)}
+                  className="font-mono text-xs px-2 py-1"
+                  style={{ color: "#8A94A0" }}
+                >
+                  Fechar
+                </button>
+              </div>
+              <p className="text-sm leading-relaxed" style={{ color: "#DCE1E5" }}>
+                {clinicalNote(tipo, numFases, simetria)}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {(!presentMode || controlsOpen) && (
+        <div className="rounded-lg p-4 space-y-4" style={{ background: "#171B21", border: "1px solid #262D35" }}>
+          <div>
+            <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+              Tipo de corrente
+            </label>
+            <select
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value)}
+              className="w-full rounded px-3 py-2 text-sm"
+              style={{ background: "#0F1318", color: "#F2EFE6", border: "1px solid #3A4650" }}
+            >
+              {TIPOS.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {showFases && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Número de fases
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setNumFases("mono")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={numFases === "mono" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Monofásica
+                </button>
+                <button
+                  onClick={() => setNumFases("bi")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={numFases === "bi" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Bifásica
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showSimetria && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Simetria das fases
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSimetria("simetrica")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={simetria === "simetrica" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Simétrica
+                </button>
+                <button
+                  onClick={() => setSimetria("assimetrica")}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={simetria === "assimetrica" ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Assimétrica
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showFormato && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Formato de onda
+              </label>
+              <select
+                value={formato}
+                onChange={(e) => setFormato(e.target.value)}
+                className="w-full rounded px-3 py-2 text-sm"
+                style={{ background: "#0F1318", color: "#F2EFE6", border: "1px solid #3A4650" }}
+              >
+                {FORMATOS.map((f) => (
+                  <option key={f.id} value={f.id}>{f.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {showPolo && (
+            <div>
+              <label className="font-mono text-xs uppercase tracking-widest block mb-1" style={{ color: "#8A94A0" }}>
+                Polo (Corrente Contínua)
+              </label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPolo(1)}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={polo === 1 ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Positivo (Ânodo)
+                </button>
+                <button
+                  onClick={() => setPolo(-1)}
+                  className="flex-1 py-1.5 rounded text-sm font-medium"
+                  style={polo === -1 ? { background: "#E8892C", color: "#171B21" } : { background: "#0F1318", color: "#B8C0C8", border: "1px solid #3A4650" }}
+                >
+                  Negativo (Cátodo)
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showFrequency && (
+            <Slider label="Frequência" value={frequency} unit="Hz" min={1} max={150} step={1} onChange={setFrequency} />
+          )}
+          {showPulseWidth && (
+            <Slider label={showPhase2 ? "Duração de pulso (fase 1)" : "Duração de pulso"} value={pulseWidth} unit="ms" min={1} max={100} step={1} onChange={setPulseWidth} />
+          )}
+          {showPhase2 && (
+            <Slider label="Duração da fase 2" value={phase2Width} unit="ms" min={pulseWidth} max={150} step={1} onChange={setPhase2Width} />
+          )}
+          <Slider label="Intensidade" value={intensity} unit="mA" min={1} max={100} step={1} onChange={setIntensity} />
+
+          <div className="pt-2 mt-2" style={{ borderTop: "1px solid #262D35" }}>
+            <p className="text-xs leading-relaxed" style={{ color: "#6C7680" }}>
+              Simulação didática — os valores de corrente são ilustrativos, não
+              correspondem à saída real de um equipamento clínico. Janela fixa de 1
+              segundo e escala de amplitude fixa em ±100 mA, para facilitar a
+              comparação visual entre parâmetros. A duração de pulso é exibida em
+              milissegundos (em vez de microssegundos, como em equipamentos reais)
+              para facilitar a visualização didática do formato da onda.
+            </p>
+          </div>
+        </div>
+        )}
+
+        {presentMode && (
+          <button
+            onClick={() => setControlsOpen((v) => !v)}
+            className="fixed bottom-5 right-5 z-20 font-mono text-xs px-4 py-2.5 rounded-full border shadow-lg"
+            style={{ background: "#E8892C", color: "#171B21", borderColor: "#E8892C" }}
+          >
+            {controlsOpen ? "Fechar controles" : "Controles"}
+          </button>
+        )}
+      </div>
+
+      {!presentMode && <ContactFooter dark />}
+    </div>
+  );
+}
+
+function Slider({ label, value, unit, min, max, step, onChange }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="font-mono text-xs uppercase tracking-widest" style={{ color: "#8A94A0" }}>{label}</label>
+        <span className="font-mono text-sm px-2 py-0.5 rounded" style={{ background: "#0F1318", color: "#E8892C", border: "1px solid #3A4650" }}>
+          {value} {unit}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full"
+      />
+    </div>
+  );
+}
+
+
+/* =========================================================================
+   PALAVRAS CRUZADAS — motor de geração + interface de jogo.
+   Para criar um novo banco de palavras, monte um array de
+   { answer, clue } e chame generateCrossword(words) — o layout é
+   calculado automaticamente (posições, interseções, numeração).
+   ========================================================================= */
+
+function normalizeAnswer(word) {
+  return word
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function generateCrossword(rawWords) {
+  const words = rawWords
+    .map((w) => ({ ...w, answer: normalizeAnswer(w.answer) }))
+    .sort((a, b) => b.answer.length - a.answer.length);
+
+  const cells = new Map();
+  const placements = [];
+
+  function canPlace(word, x, y, dir) {
+    let intersections = 0;
+    for (let i = 0; i < word.length; i++) {
+      const cx = dir === "H" ? x + i : x;
+      const cy = dir === "V" ? y + i : y;
+      const key = `${cx},${cy}`;
+      const existing = cells.get(key);
+      if (existing) {
+        if (existing !== word[i]) return null;
+        intersections++;
+      } else {
+        if (dir === "H") {
+          if (cells.has(`${cx},${cy - 1}`) || cells.has(`${cx},${cy + 1}`)) return null;
+        } else {
+          if (cells.has(`${cx - 1},${cy}`) || cells.has(`${cx + 1},${cy}`)) return null;
+        }
+      }
+    }
+    const beforeX = dir === "H" ? x - 1 : x;
+    const beforeY = dir === "V" ? y - 1 : y;
+    const afterX = dir === "H" ? x + word.length : x;
+    const afterY = dir === "V" ? y + word.length : y;
+    if (cells.has(`${beforeX},${beforeY}`) || cells.has(`${afterX},${afterY}`)) return null;
+    return intersections;
+  }
+
+  function place(word, x, y, dir) {
+    for (let i = 0; i < word.length; i++) {
+      const cx = dir === "H" ? x + i : x;
+      const cy = dir === "V" ? y + i : y;
+      cells.set(`${cx},${cy}`, word[i]);
+    }
+  }
+
+  function tryPlaceAgainstExisting(w) {
+    let best = null;
+    for (const placed of placements) {
+      for (let i = 0; i < w.answer.length; i++) {
+        for (let j = 0; j < placed.answer.length; j++) {
+          if (w.answer[i] !== placed.answer[j]) continue;
+          const newDir = placed.dir === "H" ? "V" : "H";
+          let x, y;
+          if (placed.dir === "H") {
+            x = placed.x + j;
+            y = placed.y - i;
+          } else {
+            x = placed.x - i;
+            y = placed.y + j;
+          }
+          const score = canPlace(w.answer, x, y, newDir);
+          if (score !== null && score > 0) {
+            if (!best || score > best.score) best = { x, y, dir: newDir, score };
+          }
+        }
+      }
+    }
+    return best;
+  }
+
+  place(words[0].answer, 0, 0, "H");
+  placements.push({ ...words[0], x: 0, y: 0, dir: "H" });
+
+  for (let idx = 1; idx < words.length; idx++) {
+    const best = tryPlaceAgainstExisting(words[idx]);
+    if (best) {
+      place(words[idx].answer, best.x, best.y, best.dir);
+      placements.push({ ...words[idx], x: best.x, y: best.y, dir: best.dir });
+    }
+  }
+  const placedAnswers = new Set(placements.map((p) => p.answer));
+  for (const w of words.filter((w) => !placedAnswers.has(w.answer))) {
+    const best = tryPlaceAgainstExisting(w);
+    if (best) {
+      place(w.answer, best.x, best.y, best.dir);
+      placements.push({ ...w, x: best.x, y: best.y, dir: best.dir });
+    }
+  }
+
+  let minX = 0, minY = 0, maxX = 0, maxY = 0;
+  for (const p of placements) {
+    const endX = p.dir === "H" ? p.x + p.answer.length - 1 : p.x;
+    const endY = p.dir === "V" ? p.y + p.answer.length - 1 : p.y;
+    minX = Math.min(minX, p.x, endX);
+    minY = Math.min(minY, p.y, endY);
+    maxX = Math.max(maxX, p.x, endX);
+    maxY = Math.max(maxY, p.y, endY);
+  }
+  const normalized = placements.map((p) => ({ ...p, x: p.x - minX, y: p.y - minY }));
+  const width = maxX - minX + 1;
+  const height = maxY - minY + 1;
+
+  // numeração: ordena os pontos de início em ordem de leitura (linha, depois coluna)
+  const starts = [...normalized].sort((a, b) => (a.y - b.y) || (a.x - b.x));
+  const numberByCoord = new Map();
+  let n = 0;
+  for (const p of starts) {
+    const key = `${p.x},${p.y}`;
+    if (!numberByCoord.has(key)) {
+      n++;
+      numberByCoord.set(key, n);
+    }
+  }
+  const numbered = normalized.map((p) => ({ ...p, number: numberByCoord.get(`${p.x},${p.y}`) }));
+
+  return { placements: numbered, width, height };
+}
+
+const KINESIO_WORDS = [
+  { answer: "ALAVANCA", clue: "Sistema mecânico formado por uma barra rígida que gira em torno de um ponto fixo." },
+  { answer: "TORQUE", clue: "Medida da força de rotação em torno de um eixo; também chamado de momento de força." },
+  { answer: "FULCRO", clue: "Ponto de apoio ou eixo de rotação de uma alavanca." },
+  { answer: "AGONISTA", clue: "Músculo principal responsável por produzir um movimento específico." },
+  { answer: "ANTAGONISTA", clue: "Músculo que se opõe à ação do motor primário." },
+  { answer: "SINERGISTA", clue: "Músculo que auxilia o agonista a realizar o movimento com eficiência." },
+  { answer: "ISOMETRICA", clue: "Tipo de contração muscular em que o comprimento do músculo não se altera." },
+  { answer: "CONCENTRICA", clue: "Tipo de contração em que o músculo se encurta durante a produção de força." },
+  { answer: "EXCENTRICA", clue: "Tipo de contração em que o músculo se alonga enquanto produz força." },
+  { answer: "GONIOMETRO", clue: "Instrumento utilizado para medir a amplitude de movimento articular." },
+  { answer: "SAGITAL", clue: "Plano que divide o corpo em lados direito e esquerdo." },
+  { answer: "TRANSVERSO", clue: "Plano que divide o corpo em partes superior e inferior." },
+  { answer: "CINETICA", clue: "Ramo da biomecânica que estuda as forças que causam o movimento." },
+  { answer: "CINEMATICA", clue: "Ramo da biomecânica que descreve o movimento sem considerar suas causas." },
+];
+
+function Cruzadinha({ onBack, words, titulo, subtitulo }) {
+  const { useState, useMemo, useRef } = React;
+  const puzzle = useMemo(() => generateCrossword(words), [words]);
+  const [values, setValues] = useState({});
+  const [checked, setChecked] = useState(false);
+  const inputRefs = useRef({});
+
+  const solutionByCell = useMemo(() => {
+    const map = new Map();
+    for (const p of puzzle.placements) {
+      for (let i = 0; i < p.answer.length; i++) {
+        const x = p.dir === "H" ? p.x + i : p.x;
+        const y = p.dir === "V" ? p.y + i : p.y;
+        map.set(`${x},${y}`, p.answer[i]);
+      }
+    }
+    return map;
+  }, [puzzle]);
+
+  const startNumberByCell = useMemo(() => {
+    const map = new Map();
+    for (const p of puzzle.placements) {
+      map.set(`${p.x},${p.y}`, p.number);
+    }
+    return map;
+  }, [puzzle]);
+
+  const uniqueCells = useMemo(() => {
+    const list = [...solutionByCell.keys()].map((key) => {
+      const [x, y] = key.split(",").map(Number);
+      return { key, x, y };
+    });
+    list.sort((a, b) => a.y - b.y || a.x - b.x);
+    return list;
+  }, [solutionByCell]);
+
+  const cellOrder = useMemo(() => {
+    // ordem de tabulação: por palavra, na ordem de leitura (sem repetir interseções)
+    const ordered = [];
+    const seen = new Set();
+    const sorted = [...puzzle.placements].sort((a, b) => a.number - b.number || (a.dir === "H" ? -1 : 1));
+    for (const p of sorted) {
+      for (let i = 0; i < p.answer.length; i++) {
+        const x = p.dir === "H" ? p.x + i : p.x;
+        const y = p.dir === "V" ? p.y + i : p.y;
+        const key = `${x},${y}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          ordered.push(key);
+        }
+      }
+    }
+    return ordered;
+  }, [puzzle]);
+
+  function handleChange(key, raw) {
+    const letter = normalizeAnswer(raw).slice(-1);
+    setValues((v) => ({ ...v, [key]: letter }));
+    setChecked(false);
+    if (letter) {
+      const idx = cellOrder.indexOf(key);
+      const next = cellOrder[idx + 1];
+      if (next && inputRefs.current[next]) inputRefs.current[next].focus();
+    }
+  }
+
+  function handleKeyDown(key, e) {
+    if (e.key === "Backspace" && !values[key]) {
+      const idx = cellOrder.indexOf(key);
+      const prev = cellOrder[idx - 1];
+      if (prev && inputRefs.current[prev]) inputRefs.current[prev].focus();
+    }
+  }
+
+  function verificar() {
+    setChecked(true);
+  }
+
+  function limpar() {
+    setValues({});
+    setChecked(false);
+  }
+
+  const totalCells = solutionByCell.size;
+  const correctCells = [...solutionByCell.entries()].filter(([k, letter]) => values[k] === letter).length;
+  const completo = checked && correctCells === totalCells;
+
+  const cellSize = 30;
+
+  const horizontais = puzzle.placements.filter((p) => p.dir === "H").sort((a, b) => a.number - b.number);
+  const verticais = puzzle.placements.filter((p) => p.dir === "V").sort((a, b) => a.number - b.number);
+
+  return (
+    <div
+      className="min-h-screen w-full"
+      style={{
+        background: "#F5F5F7",
+        userSelect: "none",
+        WebkitUserSelect: "none",
+        MozUserSelect: "none",
+        msUserSelect: "none",
+        WebkitTouchCallout: "none",
+      }}
+      onCopy={(e) => e.preventDefault()}
+      onCut={(e) => e.preventDefault()}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <div
+        className="px-5 pb-4 border-b flex items-center justify-between"
+        style={{ borderColor: "#E5E5EA", background: "#FFFFFF", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "#1D1D1F" }}>{titulo}</h1>
+          <p className="text-sm" style={{ color: "#6E6E73" }}>{subtitulo}</p>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+            style={{ background: "#F5F5F7", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            ← FisioLab
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 max-w-3xl mx-auto">
+        <div className="overflow-x-auto pb-2">
+          <div
+            style={{
+              position: "relative",
+              width: puzzle.width * cellSize,
+              height: puzzle.height * cellSize,
+              margin: "0 auto",
+            }}
+          >
+            {uniqueCells.map(({ key, x, y }) => {
+              const startNumber = startNumberByCell.get(key) || null;
+              const value = values[key] || "";
+              const solution = solutionByCell.get(key);
+              const isCorrect = checked && value === solution;
+              const isWrong = checked && value && value !== solution;
+              return (
+                <div
+                  key={key}
+                  style={{
+                    position: "absolute",
+                    left: x * cellSize,
+                    top: y * cellSize,
+                    width: cellSize,
+                    height: cellSize,
+                  }}
+                >
+                  {startNumber && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: 1,
+                        left: 2,
+                        fontSize: 8,
+                        color: "#9A9AA0",
+                        zIndex: 2,
+                        pointerEvents: "none",
+                      }}
+                    >
+                      {startNumber}
+                    </span>
+                  )}
+                  <input
+                    ref={(el) => (inputRefs.current[key] = el)}
+                    value={value}
+                    onChange={(e) => handleChange(key, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(key, e)}
+                    maxLength={1}
+                    className="text-center font-semibold"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      border: `1px solid ${isCorrect ? "#22C55E" : isWrong ? "#EF4444" : "#D2D2D7"}`,
+                      background: isCorrect ? "#DCFCE7" : isWrong ? "#FEE2E2" : "#FFFFFF",
+                      color: "#1D1D1F",
+                      fontSize: 14,
+                      outline: "none",
+                      padding: 0,
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-center my-4">
+          <button
+            onClick={verificar}
+            className="text-sm font-semibold px-5 py-2.5 rounded-full"
+            style={{ background: "#22C55E", color: "#FFFFFF" }}
+          >
+            Verificar
+          </button>
+          <button
+            onClick={limpar}
+            className="text-sm font-medium px-5 py-2.5 rounded-full"
+            style={{ background: "#FFFFFF", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            Limpar
+          </button>
+        </div>
+
+        {checked && (
+          <p className="text-center text-sm mb-4" style={{ color: completo ? "#22C55E" : "#6E6E73" }}>
+            {completo ? "🎉 Completo! Todas as respostas corretas." : `${correctCells} de ${totalCells} letras corretas.`}
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#22C55E" }}>Horizontais</p>
+            {horizontais.map((p) => (
+              <p key={p.number + "H"} className="text-sm mb-2" style={{ color: "#1D1D1F" }}>
+                <strong>{p.number}.</strong> {p.clue}
+              </p>
+            ))}
+          </div>
+          <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#22C55E" }}>Verticais</p>
+            {verticais.map((p) => (
+              <p key={p.number + "V"} className="text-sm mb-2" style={{ color: "#1D1D1F" }}>
+                <strong>{p.number}.</strong> {p.clue}
+              </p>
+            ))}
+          </div>
+        </div>
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+function PalavrasCruzadas({ onBack }) {
+  return <Cruzadinha onBack={onBack} words={KINESIO_WORDS} titulo="Palavras Cruzadas" subtitulo="Cinesiologia e Biomecânica" />;
+}
+
+const ANATOMIA_OSSEA_WORDS = [
+  { answer: "FEMUR", clue: "Exemplo de osso longo — o maior osso do corpo humano." },
+  { answer: "CARPO", clue: "Exemplo de osso curto, localizado no punho." },
+  { answer: "ESTERNO", clue: "Exemplo de osso plano, no centro do tórax." },
+  { answer: "VERTEBRA", clue: "Exemplo de osso irregular, parte da coluna vertebral." },
+  { answer: "PATELA", clue: "Exemplo de osso sesamoide, localizado no joelho." },
+  { answer: "FRONTAL", clue: "Exemplo de osso pneumático, com cavidade preenchida por ar (seio frontal)." },
+  { answer: "PROXIMAL", clue: "Termo de posicionamento anatômico: mais perto do tronco/origem do membro." },
+  { answer: "DISTAL", clue: "Termo de posicionamento anatômico: mais longe do tronco/origem do membro." },
+  { answer: "MEDIAL", clue: "Termo de posicionamento anatômico: mais perto da linha média do corpo." },
+  { answer: "LATERAL", clue: "Termo de posicionamento anatômico: mais afastado da linha média do corpo." },
+  { answer: "COMPACTO", clue: "Tipo de tecido ósseo denso, encontrado na camada externa dos ossos." },
+  { answer: "ESPONJOSO", clue: "Tipo de tecido ósseo poroso, encontrado no interior dos ossos." },
+  { answer: "PERIOSTEO", clue: "Membrana que reveste a superfície externa do osso." },
+  { answer: "DIAFISE", clue: "Parte central e alongada de um osso longo." },
+  { answer: "EPIFISE", clue: "Extremidade de um osso longo, próxima às articulações." },
+  { answer: "OSSIFICACAO", clue: "Processo de formação do tecido ósseo." },
+];
+
+function PalavrasCruzadasAnatomia({ onBack }) {
+  return <Cruzadinha onBack={onBack} words={ANATOMIA_OSSEA_WORDS} titulo="Palavras Cruzadas" subtitulo="Cinesiologia e Biomecânica" />;
+}
+
+/* =========================================================================
+   SUPER TRUNFO — RECURSOS FÍSICOS
+   Baralho único e fixo. Sem sincronização entre aparelhos: cada aluno
+   embaralha e revela cartas no próprio celular, compara o atributo
+   escolhido em voz alta com o colega, e decidem juntos quem "leva" a
+   rodada — igual ao baralho físico.
+   ========================================================================= */
+
+const TRUNFO_ATRIBUTOS = [
+  { key: "analgesia", label: "Analgesia" },
+  { key: "antiInflamatorio", label: "Anti-inflamatório" },
+  { key: "efeitoFratura", label: "Efeito em fratura" },
+  { key: "respostaMuscular", label: "Resposta muscular" },
+  { key: "parametros", label: "Parâmetros moduláveis" },
+  { key: "seguranca", label: "Segurança" },
+];
+
+const TRUNFO_CARTAS = [
+  { nome: "TENS", analgesia: 10, antiInflamatorio: 2, efeitoFratura: 1, respostaMuscular: 5, parametros: 7, seguranca: 9 },
+  { nome: "Corrente Russa", analgesia: 3, antiInflamatorio: 2, efeitoFratura: 1, respostaMuscular: 9, parametros: 7, seguranca: 6 },
+  { nome: "Interferencial", analgesia: 8, antiInflamatorio: 4, efeitoFratura: 1, respostaMuscular: 5, parametros: 8, seguranca: 8 },
+  { nome: "Aussie", analgesia: 6, antiInflamatorio: 3, efeitoFratura: 1, respostaMuscular: 8, parametros: 7, seguranca: 7 },
+  { nome: "FES", analgesia: 2, antiInflamatorio: 1, efeitoFratura: 1, respostaMuscular: 9, parametros: 6, seguranca: 6 },
+  { nome: "Microcorrentes", analgesia: 4, antiInflamatorio: 6, efeitoFratura: 5, respostaMuscular: 1, parametros: 5, seguranca: 10 },
+  { nome: "Galvânica / Iontoforese", analgesia: 4, antiInflamatorio: 6, efeitoFratura: 1, respostaMuscular: 3, parametros: 4, seguranca: 5 },
+  { nome: "Ultrassom Terapêutico", analgesia: 5, antiInflamatorio: 7, efeitoFratura: 8, respostaMuscular: 2, parametros: 8, seguranca: 7 },
+  { nome: "Laser (Fototerapia)", analgesia: 7, antiInflamatorio: 10, efeitoFratura: 5, respostaMuscular: 3, parametros: 6, seguranca: 8 },
+  { nome: "Ondas Curtas", analgesia: 5, antiInflamatorio: 6, efeitoFratura: 2, respostaMuscular: 2, parametros: 5, seguranca: 4 },
+  { nome: "Micro-ondas", analgesia: 5, antiInflamatorio: 6, efeitoFratura: 2, respostaMuscular: 2, parametros: 4, seguranca: 4 },
+  { nome: "Infravermelho", analgesia: 4, antiInflamatorio: 4, efeitoFratura: 0, respostaMuscular: 1, parametros: 3, seguranca: 9 },
+  { nome: "Crioterapia", analgesia: 7, antiInflamatorio: 7, efeitoFratura: 1, respostaMuscular: 1, parametros: 3, seguranca: 8 },
+  { nome: "Terapia Combinada", analgesia: 7, antiInflamatorio: 7, efeitoFratura: 7, respostaMuscular: 6, parametros: 9, seguranca: 6 },
+];
+
+function shuffleDeck(deck) {
+  const arr = [...deck];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function SuperTrunfo({ onBack }) {
+  const { useState, useMemo } = React;
+  const [order, setOrder] = useState(() => shuffleDeck(TRUNFO_CARTAS));
+  const [index, setIndex] = useState(0);
+  const [rodada, setRodada] = useState(1);
+  const [showHelp, setShowHelp] = useState(false);
+
+  const carta = order[index];
+
+  function proximaCarta() {
+    if (index + 1 >= order.length) {
+      setOrder(shuffleDeck(TRUNFO_CARTAS));
+      setIndex(0);
+    } else {
+      setIndex(index + 1);
+    }
+    setRodada((r) => r + 1);
+  }
+
+  function embaralharDeNovo() {
+    setOrder(shuffleDeck(TRUNFO_CARTAS));
+    setIndex(0);
+    setRodada(1);
+  }
+
+  const maxByAttr = useMemo(() => {
+    const map = {};
+    for (const attr of TRUNFO_ATRIBUTOS) {
+      map[attr.key] = Math.max(...TRUNFO_CARTAS.map((c) => c[attr.key]));
+    }
+    return map;
+  }, []);
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      <div
+        className="px-5 pb-4 border-b flex items-center justify-between"
+        style={{ borderColor: "#E5E5EA", background: "#FFFFFF", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "#1D1D1F" }}>Super Trunfo</h1>
+          <p className="text-sm" style={{ color: "#6E6E73" }}>Recursos Físicos</p>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+            style={{ background: "#F5F5F7", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            ← FisioLab
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 max-w-md mx-auto">
+        <button
+          onClick={() => setShowHelp((v) => !v)}
+          className="w-full text-left text-sm font-medium mb-4 px-4 py-3 rounded-2xl"
+          style={{ background: "#FFFFFF", border: "1px solid #E5E5EA", color: "#1D1D1F" }}
+        >
+          {showHelp ? "▾" : "▸"} Como jogar (em dupla, cada um com seu celular)
+        </button>
+        {showHelp && (
+          <div className="text-sm leading-relaxed mb-4 px-4" style={{ color: "#6E6E73" }}>
+            <p className="mb-2">1. Cada jogador abre esse jogo no próprio celular.</p>
+            <p className="mb-2">2. Cada um toca em "Próxima carta" e vê sua carta atual.</p>
+            <p className="mb-2">3. Quem começa escolhe um atributo (ex.: Analgesia) e fala o valor da sua carta em voz alta.</p>
+            <p className="mb-2">4. O colega fala o valor da carta dele no mesmo atributo. Quem tiver o maior número vence a rodada.</p>
+            <p>5. Toquem em "Próxima carta" e repitam — não precisa registrar placar, o jogo é sobre discutir por que cada recurso ganha ou perde em cada critério.</p>
+          </div>
+        )}
+
+        <p className="text-center text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#9A9AA0" }}>
+          Rodada {rodada}
+        </p>
+
+        <div className="rounded-3xl p-6 mb-4" style={{ background: "#1D1D1F" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#22C55E" }}>
+            Recurso físico
+          </p>
+          <h2 className="text-2xl font-bold mb-5" style={{ color: "#FFFFFF" }}>{carta.nome}</h2>
+
+          <div className="space-y-3">
+            {TRUNFO_ATRIBUTOS.map((attr) => {
+              const value = carta[attr.key];
+              const isTop = value === maxByAttr[attr.key];
+              return (
+                <div key={attr.key}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm" style={{ color: "#D1D1D6" }}>{attr.label}</span>
+                    <span
+                      className="text-sm font-bold px-2 py-0.5 rounded"
+                      style={{ color: isTop ? "#1D1D1F" : "#FFFFFF", background: isTop ? "#22C55E" : "#3A3A3D" }}
+                    >
+                      {value}
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full" style={{ background: "#3A3A3D" }}>
+                    <div
+                      className="h-1.5 rounded-full"
+                      style={{ width: `${value * 10}%`, background: isTop ? "#22C55E" : "#6E6E73" }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-center mb-6">
+          <button
+            onClick={proximaCarta}
+            className="text-sm font-semibold px-6 py-3 rounded-full"
+            style={{ background: "#22C55E", color: "#FFFFFF" }}
+          >
+            Próxima carta
+          </button>
+          <button
+            onClick={embaralharDeNovo}
+            className="text-sm font-medium px-5 py-3 rounded-full"
+            style={{ background: "#FFFFFF", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            Embaralhar
+          </button>
+        </div>
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   VISUALIZADOR DE ALAVANCAS E TORQUE — Cinesiologia e Biomecânica
+   ========================================================================= */
+
+const ALAVANCA_INFO = {
+  interfixa: {
+    nome: "Interfixa",
+    exemplo: "Extensão de cotovelo pelo tríceps: o eixo (cotovelo) fica entre a força da potência (tríceps) e a força da resistência (antebraço/carga).",
+  },
+  "inter-resistente": {
+    nome: "Inter-resistente",
+    exemplo: "Elevação de calcanhares (panturrilha): a força da resistência (peso corporal) fica entre o eixo (antepé) e a força da potência (tríceps sural).",
+  },
+  interpotente: {
+    nome: "Interpotente",
+    exemplo: "Flexão de cotovelo pelo bíceps: a força da potência (bíceps) fica entre o eixo (cotovelo) e a força da resistência (mão/carga). É a mais comum no corpo humano.",
+  },
+};
+
+function classificarAlavanca(posEixo, posPotencia, posResistencia) {
+  const pontos = [
+    { key: "interfixa", pos: posEixo },
+    { key: "inter-resistente", pos: posResistencia },
+    { key: "interpotente", pos: posPotencia },
+  ];
+  const ordenados = [...pontos].sort((a, b) => a.pos - b.pos);
+  return ordenados[1].key;
+}
+
+function VisualizadorAlavancas({ onBack }) {
+  const { useState } = React;
+  const [posEixo, setPosEixo] = useState(10);
+  const [posPotencia, setPosPotencia] = useState(30);
+  const [posResistencia, setPosResistencia] = useState(90);
+  const [forcaPotencia, setForcaPotencia] = useState(40);
+  const [forcaResistencia, setForcaResistencia] = useState(20);
+  const [travar, setTravar] = useState("nenhum"); // "nenhum" | "forca" | "posicao"
+
+  const bracoPotencia = Math.abs(posPotencia - posEixo);
+  const bracoResistencia = Math.abs(posResistencia - posEixo);
+
+  const torquePotencia = forcaPotencia * bracoPotencia;
+  const torqueResistencia = forcaResistencia * bracoResistencia;
+  const vantagemMecanica = bracoResistencia > 0 ? bracoPotencia / bracoResistencia : Infinity;
+  const diff = torquePotencia - torqueResistencia;
+
+  const classeAtual = classificarAlavanca(posEixo, posPotencia, posResistencia);
+  const info = ALAVANCA_INFO[classeAtual];
+
+  let resultado, corResultado, contracao;
+  const EPS = torqueResistencia * 0.03;
+  if (Math.abs(diff) <= Math.max(EPS, 5)) {
+    resultado = "Equilíbrio";
+    contracao = "Contração ISOMÉTRICA";
+    corResultado = "#6E6E73";
+  } else if (diff > 0) {
+    resultado = "Gira a favor da potência";
+    contracao = "Contração CONCÊNTRICA (o músculo encurta)";
+    corResultado = "#22C55E";
+  } else {
+    resultado = "Gira a favor da resistência";
+    contracao = "Contração EXCÊNTRICA (o músculo alonga controlando)";
+    corResultado = "#EF4444";
+  }
+
+  const anguloMax = 18;
+  const escala = Math.max(torquePotencia, torqueResistencia, 1);
+  const angulo = Math.max(-anguloMax, Math.min(anguloMax, (diff / escala) * anguloMax));
+
+  // ---- geometria: barra fixa de 100 cm, mapeada para -110..+110 px ----
+  const BAR_PX = 220;
+  const pxOf = (cm) => -110 + (cm / 100) * BAR_PX;
+  const eixoPx = pxOf(posEixo);
+  const potenciaPx = pxOf(posPotencia);
+  const resistenciaPx = pxOf(posResistencia);
+
+  const arrowLen = (forca) => 20 + Math.min(48, forca * 0.48);
+
+  function Slider({ label, value, onChange, min, max, disabled, unidade, accent }) {
+    return (
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-xs font-medium" style={{ color: disabled ? "#C7C7CC" : "#6E6E73" }}>{label}</label>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: disabled ? "#F5F5F7" : "#EAFBF0", color: disabled ? "#C7C7CC" : (accent || "#16A34A") }}>
+            {value} {unidade}
+          </span>
+        </div>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="w-full"
+          style={{ accentColor: accent || "#22C55E", opacity: disabled ? 0.4 : 1 }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      <div
+        className="px-5 pb-4 border-b flex items-center justify-between"
+        style={{ borderColor: "#E5E5EA", background: "#FFFFFF", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "#1D1D1F" }}>Visualizador de Alavancas</h1>
+          <p className="text-sm" style={{ color: "#6E6E73" }}>Cinesiologia e Biomecânica</p>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+            style={{ background: "#F5F5F7", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            ← FisioLab
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 max-w-md mx-auto">
+        {/* Classificação — resultado automático, não mais uma escolha */}
+        <div className="rounded-2xl px-4 py-3 mb-4 text-center" style={{ background: "#EAFBF0", border: "1px solid #BBF7D0" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#16A34A" }}>Classificação atual</p>
+          <p className="text-lg font-bold" style={{ color: "#15803D" }}>{info.nome}</p>
+        </div>
+
+        {/* Diagrama SVG — fixo durante a rolagem, barra de 100cm */}
+        <div className="rounded-2xl p-4 mb-4 sticky top-2 z-10" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA", boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}>
+          <svg viewBox="-150 -145 300 280" width="100%" height="230">
+            <defs>
+              <linearGradient id="barGrad2" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#E4E4E7" />
+                <stop offset="45%" stopColor="#B8BAC0" />
+                <stop offset="55%" stopColor="#9A9CA3" />
+                <stop offset="100%" stopColor="#6E7078" />
+              </linearGradient>
+              <marker id="arrowBlue2" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#2563EB" />
+              </marker>
+              <marker id="arrowRed2" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" refX="10" refY="5" orient="auto">
+                <path d="M0,0 L10,5 L0,10 Z" fill="#EF4444" />
+              </marker>
+            </defs>
+
+            {/* chão de referência */}
+            <line x1="-150" y1="46" x2="150" y2="46" stroke="#E5E5EA" strokeWidth="2" />
+
+            <g transform={`rotate(${-angulo} ${eixoPx} 0)`}>
+              {/* barra fixa de 100 cm */}
+              <rect x="-110" y="-5" width="220" height="10" rx="5" fill="url(#barGrad2)" stroke="#5A5C63" strokeWidth="1" />
+
+              {/* marcações de 0 e 100 cm nas pontas */}
+              <text x="-110" y="20" textAnchor="middle" fontSize="9" fill="#B0B0B5">0cm</text>
+              <text x="110" y="20" textAnchor="middle" fontSize="9" fill="#B0B0B5">100cm</text>
+
+              {/* seta FP — sempre azul, sempre para cima */}
+              <line x1={potenciaPx} y1="-5" x2={potenciaPx} y2={-5 - arrowLen(forcaPotencia)} stroke="#2563EB" strokeWidth="5" markerEnd="url(#arrowBlue2)" strokeLinecap="round" />
+              <circle cx={potenciaPx} cy="0" r="6" fill="#2563EB" stroke="#FFFFFF" strokeWidth="1.5" />
+              <text x={potenciaPx} y={-5 - arrowLen(forcaPotencia) - 9} textAnchor="middle" fontSize="12" fill="#2563EB" fontWeight="700">FP</text>
+              <text x={potenciaPx} y={-5 - arrowLen(forcaPotencia) - 21} textAnchor="middle" fontSize="10" fill="#2563EB">{forcaPotencia} Kgf</text>
+
+              {/* seta FR — sempre vermelha, sempre para baixo */}
+              <line x1={resistenciaPx} y1="5" x2={resistenciaPx} y2={5 + arrowLen(forcaResistencia)} stroke="#EF4444" strokeWidth="5" markerEnd="url(#arrowRed2)" strokeLinecap="round" />
+              <circle cx={resistenciaPx} cy="0" r="6" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1.5" />
+              <text x={resistenciaPx} y={5 + arrowLen(forcaResistencia) + 15} textAnchor="middle" fontSize="12" fill="#EF4444" fontWeight="700">FR</text>
+              <text x={resistenciaPx} y={5 + arrowLen(forcaResistencia) + 27} textAnchor="middle" fontSize="10" fill="#EF4444">{forcaResistencia} Kgf</text>
+
+              {/* eixo — símbolo de apoio fixo, posicionado dinamicamente */}
+              <polygon points={`${eixoPx},32 ${eixoPx - 13},54 ${eixoPx + 13},54`} fill="#1D1D1F" />
+              <line x1={eixoPx - 18} y1="54" x2={eixoPx + 18} y2="54" stroke="#1D1D1F" strokeWidth="2.5" />
+              {[-15, -8, -1, 6, 13].map((dx) => (
+                <line key={dx} x1={eixoPx + dx} y1="54" x2={eixoPx + dx - 6} y2="64" stroke="#1D1D1F" strokeWidth="1.5" />
+              ))}
+              <text x={eixoPx} y="78" textAnchor="middle" fontSize="12" fill="#1D1D1F" fontWeight="700">E</text>
+            </g>
+          </svg>
+        </div>
+
+        {/* Resultado */}
+        <div className="rounded-2xl p-4 mb-4" style={{ background: "#1D1D1F" }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-xs" style={{ color: "#A1A1A6" }}>Torque de FP</p>
+              <p className="text-lg font-bold" style={{ color: "#3B82F6" }}>{torquePotencia.toFixed(0)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs" style={{ color: "#A1A1A6" }}>Torque de FR</p>
+              <p className="text-lg font-bold" style={{ color: "#EF4444" }}>{torqueResistencia.toFixed(0)}</p>
+            </div>
+          </div>
+          <div className="pt-3" style={{ borderTop: "1px solid #3A3A3D" }}>
+            <p className="text-sm font-semibold mb-1" style={{ color: corResultado }}>{resultado}</p>
+            <p className="text-xs" style={{ color: "#D1D1D6" }}>{contracao}</p>
+          </div>
+          <div className="pt-3 mt-3" style={{ borderTop: "1px solid #3A3A3D" }}>
+            <p className="text-xs" style={{ color: "#A1A1A6" }}>
+              Braço de FP: <strong style={{ color: "#FFFFFF" }}>{bracoPotencia} cm</strong> · Braço de FR: <strong style={{ color: "#FFFFFF" }}>{bracoResistencia} cm</strong>
+            </p>
+            <p className="text-xs mt-1" style={{ color: "#A1A1A6" }}>
+              Vantagem mecânica: <strong style={{ color: "#FFFFFF" }}>{Number.isFinite(vantagemMecanica) ? vantagemMecanica.toFixed(2) : "—"}</strong>{" "}
+              ({vantagemMecanica >= 1 ? "vantagem — precisa de menos força" : "desvantagem — precisa de mais força"})
+            </p>
+          </div>
+        </div>
+
+        {/* Exemplo clínico */}
+        <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#22C55E" }}>
+            Exemplo no corpo humano — {info.nome}
+          </p>
+          <p className="text-sm leading-relaxed" style={{ color: "#1D1D1F" }}>{info.exemplo}</p>
+        </div>
+
+        {/* Modo de exploração */}
+        <div className="mb-2">
+          <p className="text-xs font-medium mb-1" style={{ color: "#6E6E73" }}>Explorar</p>
+          <div className="flex gap-2">
+            {[
+              { id: "nenhum", label: "Tudo livre" },
+              { id: "forca", label: "Travar força" },
+              { id: "posicao", label: "Travar posição" },
+            ].map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setTravar(m.id)}
+                className="flex-1 py-1.5 rounded-lg text-xs font-medium"
+                style={travar === m.id ? { background: "#1D1D1F", color: "#FFFFFF" } : { background: "#FFFFFF", color: "#6E6E73", border: "1px solid #E5E5EA" }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Controles de posição (barra fixa de 100cm) */}
+        <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#9A9AA0" }}>Posição na barra (0 a 100 cm)</p>
+          <Slider label="Posição do Eixo (E)" value={posEixo} onChange={setPosEixo} min={0} max={100} unidade="cm" disabled={travar === "posicao"} accent="#1D1D1F" />
+          <Slider label="Posição de FP" value={posPotencia} onChange={setPosPotencia} min={0} max={100} unidade="cm" disabled={travar === "posicao"} accent="#2563EB" />
+          <Slider label="Posição de FR" value={posResistencia} onChange={setPosResistencia} min={0} max={100} unidade="cm" disabled={travar === "posicao"} accent="#EF4444" />
+        </div>
+
+        {/* Controles de força */}
+        <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+          <Slider label="Força da Potência (FP)" value={forcaPotencia} onChange={setForcaPotencia} min={1} max={100} unidade="Kgf" disabled={travar === "forca"} />
+          <Slider label="Força da Resistência (FR)" value={forcaResistencia} onChange={setForcaResistencia} min={1} max={100} unidade="Kgf" disabled={travar === "forca"} />
+        </div>
+
+        {/* Notas educacionais */}
+        <div className="rounded-2xl p-4 mb-4 space-y-2" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+          <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#22C55E" }}>Por que isso importa</p>
+          <p className="text-sm leading-relaxed" style={{ color: "#1D1D1F" }}>
+            A maioria das alavancas do corpo humano é interpotente, com desvantagem mecânica (VM &lt; 1)
+            — o corpo troca força por velocidade e amplitude de movimento.
+          </p>
+          <p className="text-sm leading-relaxed" style={{ color: "#1D1D1F" }}>
+            Na prescrição de exercícios: aumentar a distância da carga ao eixo deixa o exercício mais
+            difícil sem precisar aumentar o peso — por isso estender o braço numa rosca direta aumenta a
+            dificuldade percebida mesmo com a mesma carga.
+          </p>
+        </div>
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   JOGO DE POSICIONAMENTO ANATÔMICO — toque no ponto certo, contra o tempo.
+   Silhueta simplificada (vista frontal), pontos marcados em pares
+   simétricos (A/B) sem indicar lado anatômico — o jogo pergunta apenas
+   sobre relações de posição (proximal/distal/medial/lateral/superior/
+   inferior), nunca sobre lateralidade.
+   ========================================================================= */
+
+const POSICAO_PONTOS = {
+  cabeca: { x: 100, y: 30 },
+  pescoco: { x: 100, y: 60 },
+  torax: { x: 100, y: 110 },
+  quadril: { x: 100, y: 232 },
+  ombroA: { x: 65, y: 85 },
+  ombroB: { x: 135, y: 85 },
+  cotoveloA: { x: 50, y: 150 },
+  cotoveloB: { x: 150, y: 150 },
+  punhoA: { x: 45, y: 205 },
+  punhoB: { x: 155, y: 205 },
+  maoA: { x: 43, y: 225 },
+  maoB: { x: 157, y: 225 },
+  quadrilA: { x: 80, y: 235 },
+  quadrilB: { x: 120, y: 235 },
+  joelhoA: { x: 78, y: 305 },
+  joelhoB: { x: 122, y: 305 },
+  tornozeloA: { x: 76, y: 375 },
+  tornozeloB: { x: 124, y: 375 },
+  peA: { x: 74, y: 395 },
+  peB: { x: 126, y: 395 },
+};
+
+const POSICAO_RODADAS = [
+  { texto: "Toque num ponto DISTAL ao ombro", ref: "ombroB", opcoes: [{ id: "cotoveloB", correta: true }, { id: "maoB", correta: true }, { id: "quadrilB", correta: false }] },
+  { texto: "Toque num ponto DISTAL ao quadril", ref: "quadrilA", opcoes: [{ id: "joelhoA", correta: true }, { id: "peA", correta: true }, { id: "ombroA", correta: false }] },
+  { texto: "Toque num ponto DISTAL ao cotovelo", ref: "cotoveloB", opcoes: [{ id: "punhoB", correta: true }, { id: "maoB", correta: true }, { id: "ombroB", correta: false }] },
+  { texto: "Toque num ponto PROXIMAL ao punho", ref: "punhoA", opcoes: [{ id: "cotoveloA", correta: true }, { id: "ombroA", correta: true }, { id: "maoA", correta: false }] },
+  { texto: "Toque num ponto PROXIMAL ao tornozelo", ref: "tornozeloB", opcoes: [{ id: "joelhoB", correta: true }, { id: "quadrilB", correta: true }, { id: "peB", correta: false }] },
+  { texto: "Toque num ponto PROXIMAL ao joelho", ref: "joelhoA", opcoes: [{ id: "quadrilA", correta: true }, { id: "quadril", correta: true }, { id: "tornozeloA", correta: false }] },
+  { texto: "Toque num ponto MEDIAL ao ombro (mais perto da linha média)", ref: "ombroA", opcoes: [{ id: "torax", correta: true }, { id: "pescoco", correta: true }, { id: "maoA", correta: false }] },
+  { texto: "Toque num ponto MEDIAL ao joelho", ref: "joelhoB", opcoes: [{ id: "quadril", correta: true }, { id: "torax", correta: true }, { id: "tornozeloB", correta: false }] },
+  { texto: "Toque num ponto LATERAL ao tórax (mais afastado da linha média)", ref: "torax", opcoes: [{ id: "ombroA", correta: true }, { id: "ombroB", correta: true }, { id: "pescoco", correta: false }] },
+  { texto: "Toque num ponto LATERAL ao quadril", ref: "quadril", opcoes: [{ id: "quadrilA", correta: true }, { id: "quadrilB", correta: true }, { id: "torax", correta: false }] },
+  { texto: "Toque no ponto mais CRANIAL entre os dois marcados", opcoes: [{ id: "ombroB", correta: true }, { id: "joelhoA", correta: false }] },
+  { texto: "Toque no ponto mais CRANIAL entre os dois marcados", opcoes: [{ id: "pescoco", correta: true }, { id: "tornozeloA", correta: false }] },
+  { texto: "Toque no ponto mais CAUDAL entre os dois marcados", opcoes: [{ id: "maoA", correta: false }, { id: "peA", correta: true }] },
+  { texto: "Toque no ponto mais CAUDAL entre os dois marcados", opcoes: [{ id: "cotoveloB", correta: false }, { id: "joelhoB", correta: true }] },
+];
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function JogoPosicionamento({ onBack }) {
+  const { useState, useEffect, useRef } = React;
+  const ROUND_TIME = 8;
+
+  const [fase, setFase] = useState("intro"); // "intro" | "jogando" | "fim"
+  const [rodadas, setRodadas] = useState([]);
+  const [indice, setIndice] = useState(0);
+  const [tempo, setTempo] = useState(ROUND_TIME);
+  const [pontuacao, setPontuacao] = useState(0);
+  const [selecionado, setSelecionado] = useState(null);
+  const [travarToque, setTravarToque] = useState(false);
+  const timerRef = useRef(null);
+
+  function iniciar() {
+    setRodadas(shuffleArray(POSICAO_RODADAS));
+    setIndice(0);
+    setPontuacao(0);
+    setTempo(ROUND_TIME);
+    setSelecionado(null);
+    setTravarToque(false);
+    setFase("jogando");
+  }
+
+  const rodadaAtual = rodadas[indice];
+
+  useEffect(() => {
+    if (fase !== "jogando") return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTempo((t) => {
+        if (t <= 1) {
+          clearInterval(timerRef.current);
+          avancar(false, null);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line
+  }, [fase, indice]);
+
+  function avancar(acertou, idTocado) {
+    setTravarToque(true);
+    setSelecionado(idTocado);
+    if (acertou) setPontuacao((p) => p + 1);
+    setTimeout(() => {
+      setSelecionado(null);
+      setTravarToque(false);
+      if (indice + 1 >= rodadas.length) {
+        setFase("fim");
+      } else {
+        setIndice((i) => i + 1);
+        setTempo(ROUND_TIME);
+      }
+    }, 700);
+  }
+
+  function handleTap(opcao) {
+    if (travarToque) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    avancar(opcao.correta, opcao.id);
+  }
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      <div
+        className="px-5 pb-4 border-b flex items-center justify-between"
+        style={{ borderColor: "#E5E5EA", background: "#FFFFFF", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "#1D1D1F" }}>Posicionamento Anatômico</h1>
+          <p className="text-sm" style={{ color: "#6E6E73" }}>Cinesiologia e Biomecânica</p>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+            style={{ background: "#F5F5F7", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            ← FisioLab
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 max-w-md mx-auto">
+        {fase === "intro" && (
+          <div className="rounded-2xl p-5 text-center" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+            <p className="text-sm leading-relaxed mb-4" style={{ color: "#1D1D1F" }}>
+              Toque no ponto certo do corpo antes que o tempo acabe. {POSICAO_RODADAS.length} rodadas,
+              {" "}{ROUND_TIME}s cada — testa proximal/distal, medial/lateral e superior/inferior.
+            </p>
+            <button onClick={iniciar} className="w-full py-2.5 rounded-full text-sm font-semibold" style={{ background: "#22C55E", color: "#FFFFFF" }}>
+              Começar
+            </button>
+          </div>
+        )}
+
+        {fase === "jogando" && rodadaAtual && (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold" style={{ color: "#6E6E73" }}>
+                Rodada {indice + 1}/{rodadas.length} · Pontos: {pontuacao}
+              </p>
+              <span
+                className="text-xs font-bold px-2.5 py-1 rounded-full"
+                style={{ background: tempo <= 3 ? "#FEE2E2" : "#EAFBF0", color: tempo <= 3 ? "#DC2626" : "#16A34A" }}
+              >
+                {tempo}s
+              </span>
+            </div>
+
+            <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+              <p className="text-sm font-semibold text-center mb-3" style={{ color: "#1D1D1F" }}>
+                {rodadaAtual.texto}
+              </p>
+
+              <svg viewBox="0 0 200 420" width="100%" height="360">
+                {/* silhueta simplificada (esqueleto de linhas) */}
+                <g stroke="#D2D2D7" strokeWidth="6" strokeLinecap="round" fill="none">
+                  <line x1={POSICAO_PONTOS.pescoco.x} y1={POSICAO_PONTOS.pescoco.y} x2={POSICAO_PONTOS.quadril.x} y2={POSICAO_PONTOS.quadril.y} />
+                  <line x1={POSICAO_PONTOS.ombroA.x} y1={POSICAO_PONTOS.ombroA.y} x2={POSICAO_PONTOS.ombroB.x} y2={POSICAO_PONTOS.ombroB.y} />
+                  <line x1={POSICAO_PONTOS.ombroA.x} y1={POSICAO_PONTOS.ombroA.y} x2={POSICAO_PONTOS.cotoveloA.x} y2={POSICAO_PONTOS.cotoveloA.y} />
+                  <line x1={POSICAO_PONTOS.cotoveloA.x} y1={POSICAO_PONTOS.cotoveloA.y} x2={POSICAO_PONTOS.punhoA.x} y2={POSICAO_PONTOS.punhoA.y} />
+                  <line x1={POSICAO_PONTOS.punhoA.x} y1={POSICAO_PONTOS.punhoA.y} x2={POSICAO_PONTOS.maoA.x} y2={POSICAO_PONTOS.maoA.y} />
+                  <line x1={POSICAO_PONTOS.ombroB.x} y1={POSICAO_PONTOS.ombroB.y} x2={POSICAO_PONTOS.cotoveloB.x} y2={POSICAO_PONTOS.cotoveloB.y} />
+                  <line x1={POSICAO_PONTOS.cotoveloB.x} y1={POSICAO_PONTOS.cotoveloB.y} x2={POSICAO_PONTOS.punhoB.x} y2={POSICAO_PONTOS.punhoB.y} />
+                  <line x1={POSICAO_PONTOS.punhoB.x} y1={POSICAO_PONTOS.punhoB.y} x2={POSICAO_PONTOS.maoB.x} y2={POSICAO_PONTOS.maoB.y} />
+                  <line x1={POSICAO_PONTOS.quadrilA.x} y1={POSICAO_PONTOS.quadrilA.y} x2={POSICAO_PONTOS.quadrilB.x} y2={POSICAO_PONTOS.quadrilB.y} />
+                  <line x1={POSICAO_PONTOS.quadrilA.x} y1={POSICAO_PONTOS.quadrilA.y} x2={POSICAO_PONTOS.joelhoA.x} y2={POSICAO_PONTOS.joelhoA.y} />
+                  <line x1={POSICAO_PONTOS.joelhoA.x} y1={POSICAO_PONTOS.joelhoA.y} x2={POSICAO_PONTOS.tornozeloA.x} y2={POSICAO_PONTOS.tornozeloA.y} />
+                  <line x1={POSICAO_PONTOS.tornozeloA.x} y1={POSICAO_PONTOS.tornozeloA.y} x2={POSICAO_PONTOS.peA.x} y2={POSICAO_PONTOS.peA.y} />
+                  <line x1={POSICAO_PONTOS.quadrilB.x} y1={POSICAO_PONTOS.quadrilB.y} x2={POSICAO_PONTOS.joelhoB.x} y2={POSICAO_PONTOS.joelhoB.y} />
+                  <line x1={POSICAO_PONTOS.joelhoB.x} y1={POSICAO_PONTOS.joelhoB.y} x2={POSICAO_PONTOS.tornozeloB.x} y2={POSICAO_PONTOS.tornozeloB.y} />
+                  <line x1={POSICAO_PONTOS.tornozeloB.x} y1={POSICAO_PONTOS.tornozeloB.y} x2={POSICAO_PONTOS.peB.x} y2={POSICAO_PONTOS.peB.y} />
+                </g>
+                <circle cx={POSICAO_PONTOS.cabeca.x} cy={POSICAO_PONTOS.cabeca.y} r="18" fill="#EDEDF0" stroke="#D2D2D7" strokeWidth="3" />
+
+                {/* ponto de referência, se houver */}
+                {rodadaAtual.ref && (
+                  <g>
+                    <circle cx={POSICAO_PONTOS[rodadaAtual.ref].x} cy={POSICAO_PONTOS[rodadaAtual.ref].y} r="10" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="2" />
+                    <text x={POSICAO_PONTOS[rodadaAtual.ref].x} y={POSICAO_PONTOS[rodadaAtual.ref].y - 15} textAnchor="middle" fontSize="10" fill="#B45309" fontWeight="700">REF</text>
+                  </g>
+                )}
+
+                {/* opções tocáveis */}
+                {rodadaAtual.opcoes.map((op) => {
+                  const p = POSICAO_PONTOS[op.id];
+                  const foiSelecionado = selecionado === op.id;
+                  let fill = "#9CA3AF";
+                  if (foiSelecionado) fill = op.correta ? "#22C55E" : "#EF4444";
+                  return (
+                    <circle
+                      key={op.id}
+                      cx={p.x}
+                      cy={p.y}
+                      r="14"
+                      fill={fill}
+                      stroke="#FFFFFF"
+                      strokeWidth="2.5"
+                      onClick={() => handleTap(op)}
+                      style={{ cursor: "pointer" }}
+                    />
+                  );
+                })}
+              </svg>
+            </div>
+          </>
+        )}
+
+        {fase === "fim" && (
+          <div className="rounded-2xl p-5 text-center" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#22C55E" }}>Resultado</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: "#1D1D1F" }}>{pontuacao} / {rodadas.length}</p>
+            <p className="text-sm mb-4" style={{ color: "#6E6E73" }}>
+              {pontuacao === rodadas.length ? "Perfeito!" : pontuacao >= rodadas.length * 0.7 ? "Muito bom!" : "Vale revisar os termos e jogar de novo."}
+            </p>
+            <button onClick={iniciar} className="w-full py-2.5 rounded-full text-sm font-semibold" style={{ background: "#22C55E", color: "#FFFFFF" }}>
+              Jogar de novo
+            </button>
+          </div>
+        )}
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   SIMULADOR CLÍNICO DE ELETROTERAPIA — 100% dentro do FisioLab, sem IA.
+   O aluno recebe um card com as características do paciente (já prontas,
+   sem precisar investigar) e precisa configurar o aparelho: parâmetros +
+   número/posição dos eletrodos. Feedback é só certo/errado — o aluno
+   precisa descobrir sozinho o que ajustar.
+   ========================================================================= */
+
+// zonas clicáveis no corpo — cada uma com um raio de tolerância generoso
+// ("quase certo" conta), reaproveitando os pontos do jogo de posicionamento
+const ELETRO_ZONAS = {
+  cotoveloLateralA: { x: 50, y: 150, label: "Cotovelo (lateral)" },
+  cotoveloLateralB: { x: 150, y: 150, label: "Cotovelo (lateral)" },
+  ombroA: { x: 65, y: 85, label: "Ombro" },
+  ombroB: { x: 135, y: 85, label: "Ombro" },
+  panturrilhaA: { x: 77, y: 340, label: "Panturrilha" },
+  panturrilhaB: { x: 123, y: 340, label: "Panturrilha" },
+  quadricepsA: { x: 72, y: 265, label: "Quadríceps (coxa anterior)" },
+  quadricepsB: { x: 128, y: 265, label: "Quadríceps (coxa anterior)" },
+  antebracoPostA: { x: 46, y: 194, label: "Antebraço posterior" },
+  antebracoPostB: { x: 154, y: 194, label: "Antebraço posterior" },
+};
+const ZONA_RAIO = 16;
+
+const ELETRO_CASOS = [
+  {
+    id: "epicondilite",
+    titulo: "Epicondilite Lateral do Cotovelo",
+    card: "Dor lateral no cotovelo há poucos dias, moderada, após aumento de carga no treino de tênis. Sem sinais de processo agudo importante.",
+    contraindicado: false,
+    modulacaoEsperada: false,
+    esperado: {
+      frequencia: [1, 10],
+      duracaoPulso: [250, 600],
+      intensidade: [70, 100],
+      canais: [1, 2],
+      zonas: ["cotoveloLateralA", "cotoveloLateralB"],
+    },
+  },
+  {
+    id: "ombro",
+    titulo: "Dor Crônica no Ombro",
+    card: "Dor no ombro há vários meses, intensidade muito alta. Paciente bastante sensível ao toque e apreensivo com qualquer estímulo novo.",
+    contraindicado: false,
+    modulacaoEsperada: false,
+    esperado: {
+      frequencia: [50, 150],
+      duracaoPulso: [150, 200],
+      intensidade: [15, 40],
+      canais: [1, 2],
+      zonas: ["ombroA", "ombroB"],
+    },
+  },
+  {
+    id: "panturrilha",
+    titulo: "Dor na Panturrilha",
+    card: "Dor na panturrilha há alguns dias, sem histórico claro de esforço físico. Paciente comenta que ficou de repouso prolongado recentemente (viagem longa). À palpação, a perna está discretamente mais quente e um pouco mais inchada em comparação à outra.",
+    contraindicado: true,
+    modulacaoEsperada: false,
+    esperado: null,
+  },
+  {
+    id: "posLCA",
+    titulo: "Pós-operatório de LCA — Inibição Muscular",
+    card: "3 semanas de pós-operatório de reconstrução do LCA. Não consegue contrair o quadríceps voluntariamente, mesmo tentando com força máxima. Derrame articular leve residual.",
+    contraindicado: false,
+    modulacaoEsperada: true,
+    esperado: {
+      frequencia: [35, 80],
+      duracaoPulso: [400, 600],
+      intensidade: [60, 100],
+      canais: [1, 2],
+      zonas: ["quadricepsA", "quadricepsB"],
+    },
+  },
+  {
+    id: "nervoRadial",
+    titulo: "Lesão do Nervo Radial",
+    card: "Paciente com histórico de fratura de úmero, apresenta dificuldade de estender o punho e os dedos ativamente. Sensibilidade alterada no dorso da mão. Movimento passivo preservado.",
+    contraindicado: false,
+    modulacaoEsperada: true,
+    esperado: {
+      frequencia: [35, 60],
+      duracaoPulso: [400, 600],
+      intensidade: [40, 100],
+      canais: [1, 2],
+      zonas: ["antebracoPostA", "antebracoPostB"],
+    },
+  },
+];
+
+function dentroFaixa(v, faixa) {
+  return v >= faixa[0] && v <= faixa[1];
+}
+
+function avaliarCaso(caso, resposta) {
+  if (caso.contraindicado) {
+    return resposta.declarouContraindicado === true;
+  }
+  if (resposta.declarouContraindicado) return false;
+  const p = resposta.parametros;
+  const e = caso.esperado;
+  const paramsOk =
+    dentroFaixa(p.frequencia, e.frequencia) &&
+    dentroFaixa(p.duracaoPulso, e.duracaoPulso) &&
+    dentroFaixa(p.intensidade, e.intensidade);
+  const canaisOk = e.canais.includes(resposta.eletrodos.length);
+  const zonaOk =
+    resposta.eletrodos.length > 0 &&
+    resposta.eletrodos.every((el) => e.zonas.includes(el.zonaId));
+
+  let modulacaoOk;
+  if (caso.modulacaoEsperada) {
+    modulacaoOk =
+      resposta.modulacaoAtiva &&
+      resposta.ton > 0 &&
+      resposta.toff > 0 &&
+      dentroFaixa(resposta.rise, [1, 5]) &&
+      dentroFaixa(resposta.decay, [1, 5]);
+  } else {
+    modulacaoOk = !resposta.modulacaoAtiva;
+  }
+
+  return paramsOk && canaisOk && zonaOk && modulacaoOk;
+}
+
+function SimuladorEletroterapiaClinico({ onBack }) {
+  const { useState } = React;
+  const [casoId, setCasoId] = useState(null);
+  const [frequencia, setFrequencia] = useState(50);
+  const [duracaoPulso, setDuracaoPulso] = useState(200);
+  const [intensidade, setIntensidade] = useState(30);
+  const [eletrodos, setEletrodos] = useState([]);
+  const [modulacaoAtiva, setModulacaoAtiva] = useState(false);
+  const [ton, setTon] = useState(5);
+  const [toff, setToff] = useState(10);
+  const [rise, setRise] = useState(2);
+  const [decay, setDecay] = useState(1);
+  const [resultado, setResultado] = useState(null); // null | "certo" | "errado"
+
+  const caso = ELETRO_CASOS.find((c) => c.id === casoId);
+
+  function iniciarCaso(id) {
+    setCasoId(id);
+    setFrequencia(50);
+    setDuracaoPulso(200);
+    setIntensidade(30);
+    setEletrodos([]);
+    setModulacaoAtiva(false);
+    setTon(5);
+    setToff(10);
+    setRise(2);
+    setDecay(1);
+    setResultado(null);
+  }
+
+  function voltarMenu() {
+    setCasoId(null);
+    setResultado(null);
+  }
+
+  function handleCliqueCorpo(zonaId) {
+    if (resultado) return;
+    setEletrodos((prev) => {
+      const jaTem = prev.find((e) => e.zonaId === zonaId);
+      if (jaTem) return prev.filter((e) => e.zonaId !== zonaId);
+      if (prev.length >= 2) return prev; // máximo 2 canais
+      return [...prev, { zonaId }];
+    });
+  }
+
+  function limparEletrodos() {
+    setEletrodos([]);
+  }
+
+  function avaliar(declarouContraindicado) {
+    const resposta = {
+      declarouContraindicado,
+      parametros: { frequencia, duracaoPulso, intensidade },
+      eletrodos,
+      modulacaoAtiva,
+      ton,
+      toff,
+      rise,
+      decay,
+    };
+    const acertou = avaliarCaso(caso, resposta);
+    setResultado(acertou ? "certo" : "errado");
+  }
+
+  function tentarDeNovo() {
+    setResultado(null);
+  }
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      <div
+        className="px-5 pb-4 border-b flex items-center justify-between"
+        style={{ borderColor: "#E5E5EA", background: "#FFFFFF", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "#1D1D1F" }}>Simulador Clínico</h1>
+          <p className="text-sm" style={{ color: "#6E6E73" }}>Eletroterapia</p>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+            style={{ background: "#F5F5F7", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            ← FisioLab
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 max-w-md mx-auto">
+        {!caso && (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#6E6E73" }}>
+              Escolha um caso
+            </p>
+            <div className="space-y-3">
+              {ELETRO_CASOS.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => iniciarCaso(c.id)}
+                  className="w-full text-left rounded-2xl p-4"
+                  style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}
+                >
+                  <h3 className="text-sm font-semibold mb-1" style={{ color: "#1D1D1F" }}>{c.titulo}</h3>
+                  <p className="text-xs leading-relaxed" style={{ color: "#6E6E73" }}>{c.card}</p>
+                </button>
+              ))}
+            </div>
+            <ContactFooter />
+          </>
+        )}
+
+        {caso && (
+          <>
+            <button onClick={voltarMenu} className="text-xs font-medium mb-3" style={{ color: "#6E6E73" }}>
+              ← Trocar de caso
+            </button>
+
+            <div className="rounded-2xl p-4 mb-4" style={{ background: "#1D1D1F" }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#22C55E" }}>{caso.titulo}</p>
+              <p className="text-sm leading-relaxed" style={{ color: "#FFFFFF" }}>{caso.card}</p>
+            </div>
+
+            {resultado && (
+              <div
+                className="rounded-2xl p-4 mb-4 text-center"
+                style={resultado === "certo" ? { background: "#EAFBF0", border: "1px solid #BBF7D0" } : { background: "#FEE2E2", border: "1px solid #FECACA" }}
+              >
+                <p className="text-lg font-bold mb-1" style={{ color: resultado === "certo" ? "#15803D" : "#DC2626" }}>
+                  {resultado === "certo" ? "✅ Correto" : "❌ Incorreto"}
+                </p>
+                <p className="text-xs mb-3" style={{ color: "#6E6E73" }}>
+                  {resultado === "certo" ? "Configuração adequada pra esse caso." : "Revise os parâmetros, os eletrodos, ou se esse caso deveria ser tratado."}
+                </p>
+                <button onClick={tentarDeNovo} className="px-5 py-2 rounded-full text-sm font-semibold" style={{ background: "#1D1D1F", color: "#FFFFFF" }}>
+                  Tentar de novo
+                </button>
+              </div>
+            )}
+
+            {!resultado && (
+              <>
+                <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#22C55E" }}>
+                    Posição dos eletrodos (toque no corpo — até 2)
+                  </p>
+                  <svg viewBox="0 0 200 420" width="100%" height="340">
+                    <g stroke="#D2D2D7" strokeWidth="6" strokeLinecap="round" fill="none">
+                      <line x1="100" y1="60" x2="100" y2="232" />
+                      <line x1="65" y1="85" x2="135" y2="85" />
+                      <line x1="65" y1="85" x2="50" y2="150" />
+                      <line x1="50" y1="150" x2="45" y2="205" />
+                      <line x1="45" y1="205" x2="43" y2="225" />
+                      <line x1="135" y1="85" x2="150" y2="150" />
+                      <line x1="150" y1="150" x2="155" y2="205" />
+                      <line x1="155" y1="205" x2="157" y2="225" />
+                      <line x1="80" y1="235" x2="120" y2="235" />
+                      <line x1="80" y1="235" x2="78" y2="305" />
+                      <line x1="78" y1="305" x2="76" y2="375" />
+                      <line x1="76" y1="375" x2="74" y2="395" />
+                      <line x1="120" y1="235" x2="122" y2="305" />
+                      <line x1="122" y1="305" x2="124" y2="375" />
+                      <line x1="124" y1="375" x2="126" y2="395" />
+                    </g>
+                    <circle cx="100" cy="30" r="18" fill="#EDEDF0" stroke="#D2D2D7" strokeWidth="3" />
+
+                    {Object.entries(ELETRO_ZONAS).map(([id, z]) => {
+                      const selecionado = eletrodos.some((e) => e.zonaId === id);
+                      return (
+                        <circle
+                          key={id}
+                          cx={z.x}
+                          cy={z.y}
+                          r={ZONA_RAIO}
+                          fill={selecionado ? "rgba(34,197,94,0.35)" : "rgba(156,163,175,0.15)"}
+                          stroke={selecionado ? "#22C55E" : "transparent"}
+                          strokeWidth="2"
+                          onClick={() => handleCliqueCorpo(id)}
+                          style={{ cursor: "pointer" }}
+                        />
+                      );
+                    })}
+                    {eletrodos.map((e) => (
+                      <circle key={e.zonaId} cx={ELETRO_ZONAS[e.zonaId].x} cy={ELETRO_ZONAS[e.zonaId].y} r="7" fill="#22C55E" stroke="#FFFFFF" strokeWidth="2" style={{ pointerEvents: "none" }} />
+                    ))}
+                  </svg>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs" style={{ color: "#9A9AA0" }}>
+                      {eletrodos.length === 0
+                        ? "Nenhum eletrodo posicionado"
+                        : "Selecionado: " + eletrodos.map((e) => ELETRO_ZONAS[e.zonaId].label).join(" + ")}
+                    </p>
+                    <button onClick={limparEletrodos} className="text-xs px-2 py-1 rounded border" style={{ borderColor: "#E5E5EA", color: "#6E6E73" }}>
+                      Limpar
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+                  <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#22C55E" }}>
+                    Parâmetros
+                  </p>
+
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium" style={{ color: "#6E6E73" }}>Frequência</label>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{frequencia} Hz</span>
+                    </div>
+                    <input type="range" min={1} max={150} value={frequencia} onChange={(e) => setFrequencia(Number(e.target.value))} className="w-full" style={{ accentColor: "#22C55E" }} />
+                  </div>
+
+                  <div className="mb-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium" style={{ color: "#6E6E73" }}>Duração de pulso</label>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{duracaoPulso} µs</span>
+                    </div>
+                    <input type="range" min={20} max={600} step={10} value={duracaoPulso} onChange={(e) => setDuracaoPulso(Number(e.target.value))} className="w-full" style={{ accentColor: "#22C55E" }} />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-medium" style={{ color: "#6E6E73" }}>Intensidade</label>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{intensidade} mA</span>
+                    </div>
+                    <input type="range" min={1} max={100} value={intensidade} onChange={(e) => setIntensidade(Number(e.target.value))} className="w-full" style={{ accentColor: "#22C55E" }} />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl p-4 mb-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+                  <label className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#22C55E" }}>
+                      Modulação (Ton/Toff · Rise/Decay)
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={modulacaoAtiva}
+                      onChange={(e) => setModulacaoAtiva(e.target.checked)}
+                    />
+                  </label>
+                  <p className="text-xs mb-3" style={{ color: "#9A9AA0" }}>
+                    {modulacaoAtiva ? "Ativada" : "Desativada"}
+                  </p>
+
+                  {modulacaoAtiva && (
+                    <>
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium" style={{ color: "#6E6E73" }}>Ton (contração)</label>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{ton} s</span>
+                        </div>
+                        <input type="range" min={1} max={15} value={ton} onChange={(e) => setTon(Number(e.target.value))} className="w-full" style={{ accentColor: "#22C55E" }} />
+                      </div>
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium" style={{ color: "#6E6E73" }}>Toff (repouso)</label>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{toff} s</span>
+                        </div>
+                        <input type="range" min={1} max={60} value={toff} onChange={(e) => setToff(Number(e.target.value))} className="w-full" style={{ accentColor: "#22C55E" }} />
+                      </div>
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium" style={{ color: "#6E6E73" }}>Rise (rampa de subida)</label>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{rise} s</span>
+                        </div>
+                        <input type="range" min={0} max={10} value={rise} onChange={(e) => setRise(Number(e.target.value))} className="w-full" style={{ accentColor: "#22C55E" }} />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-medium" style={{ color: "#6E6E73" }}>Decay (rampa de descida)</label>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{decay} s</span>
+                        </div>
+                        <input type="range" min={0} max={10} value={decay} onChange={(e) => setDecay(Number(e.target.value))} className="w-full" style={{ accentColor: "#22C55E" }} />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex gap-2 mb-4">
+                  <button onClick={() => avaliar(false)} className="flex-1 py-2.5 rounded-full text-sm font-semibold" style={{ background: "#22C55E", color: "#FFFFFF" }}>
+                    Iniciar
+                  </button>
+                  <button onClick={() => avaliar(true)} className="flex-1 py-2.5 rounded-full text-sm font-semibold" style={{ background: "#DC2626", color: "#FFFFFF" }}>
+                    Contraindicado
+                  </button>
+                </div>
+              </>
+            )}
+
+            <ContactFooter />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const MARCOS_OSSEOS = [
+  { id: 0, grupo: "Úmero", marco: "Cabeça do úmero", osso: "Úmero", regiao: "Proximal", face: "—", palpavel: "Não", funcao: "Articula-se com a cavidade glenoidal da escápula (articulação do ombro)" },
+  { id: 1, grupo: "Úmero", marco: "Colo do úmero", osso: "Úmero", regiao: "Proximal", face: "—", palpavel: "Não", funcao: "Transição entre a cabeça e os tubérculos; local comum de fratura" },
+  { id: 2, grupo: "Úmero", marco: "Tubérculo maior do úmero", osso: "Úmero", regiao: "Proximal", face: "Lateral", palpavel: "Sim", funcao: "Fixação dos músculos supraespinal, infraespinal e redondo menor (manguito rotador)" },
+  { id: 3, grupo: "Úmero", marco: "Tubérculo menor do úmero", osso: "Úmero", regiao: "Proximal", face: "Anterior", palpavel: "Sim", funcao: "Fixação do músculo subescapular (manguito rotador)" },
+  { id: 4, grupo: "Úmero", marco: "Sulco intertubercular", osso: "Úmero", regiao: "Proximal", face: "Anterior", palpavel: "Sim", funcao: "Passagem do tendão da cabeça longa do bíceps braquial" },
+  { id: 5, grupo: "Úmero", marco: "Epicôndilo medial do úmero", osso: "Úmero", regiao: "Distal", face: "Medial", palpavel: "Sim", funcao: "Fixação dos músculos flexores do antebraço" },
+  { id: 6, grupo: "Úmero", marco: "Epicôndilo lateral do úmero", osso: "Úmero", regiao: "Distal", face: "Lateral", palpavel: "Sim", funcao: "Fixação dos músculos extensores do antebraço" },
+  { id: 7, grupo: "Úmero", marco: "Fossa radial", osso: "Úmero", regiao: "Distal", face: "Anterior", palpavel: "Não", funcao: "Acomoda a cabeça do rádio durante a flexão do cotovelo" },
+  { id: 8, grupo: "Úmero", marco: "Fossa coronoide", osso: "Úmero", regiao: "Distal", face: "Anterior", palpavel: "Não", funcao: "Acomoda o processo coronoide da ulna durante a flexão do cotovelo" },
+  { id: 9, grupo: "Úmero", marco: "Fossa do olécrano", osso: "Úmero", regiao: "Distal", face: "Posterior", palpavel: "Não", funcao: "Acomoda o olécrano da ulna durante a extensão do cotovelo" },
+  { id: 10, grupo: "Úmero", marco: "Capítulo", osso: "Úmero", regiao: "Distal", face: "Anterior/Lateral", palpavel: "Não", funcao: "Articula-se com a cabeça do rádio" },
+  { id: 11, grupo: "Úmero", marco: "Tróclea (do úmero)", osso: "Úmero", regiao: "Distal", face: "—", palpavel: "Não", funcao: "Articula-se com a incisura troclear da ulna" },
+  { id: 12, grupo: "Rádio e Ulna", marco: "Cabeça do rádio", osso: "Rádio", regiao: "Proximal", face: "Lateral (no cotovelo)", palpavel: "Sim", funcao: "Articula-se com o capítulo do úmero e a incisura radial da ulna" },
+  { id: 13, grupo: "Rádio e Ulna", marco: "Olécrano", osso: "Ulna", regiao: "Proximal", face: "Posterior", palpavel: "Sim", funcao: "Fixação do tríceps braquial; forma a proeminência do cotovelo" },
+  { id: 14, grupo: "Rádio e Ulna", marco: "Incisura troclear", osso: "Ulna", regiao: "Proximal", face: "Anterior", palpavel: "Não", funcao: "Articula-se com a tróclea do úmero" },
+  { id: 15, grupo: "Rádio e Ulna", marco: "Tuberosidade do rádio", osso: "Rádio", regiao: "Proximal", face: "Anterior/Medial", palpavel: "Não", funcao: "Fixação do músculo bíceps braquial" },
+  { id: 16, grupo: "Mão", marco: "Ossos do carpo", osso: "Carpo", regiao: "Proximal (da mão)", face: "—", palpavel: "Parcial", funcao: "Formam o punho; permitem mobilidade da mão" },
+  { id: 17, grupo: "Mão", marco: "Metacarpo", osso: "Metacarpo", regiao: "Intermediária (da mão)", face: "—", palpavel: "Sim", funcao: "Ossos longos da palma da mão" },
+  { id: 18, grupo: "Mão", marco: "Falanges (mão)", osso: "Falanges", regiao: "Distal (da mão)", face: "—", palpavel: "Sim", funcao: "Ossos dos dedos da mão" },
+  { id: 19, grupo: "Clavícula e Escápula", marco: "Extremidade esternal", osso: "Clavícula", regiao: "Medial", face: "—", palpavel: "Sim", funcao: "Articula-se com o manúbrio do esterno (articulação esternoclavicular)" },
+  { id: 20, grupo: "Clavícula e Escápula", marco: "Extremidade acromial da clavícula", osso: "Clavícula", regiao: "Lateral", face: "—", palpavel: "Sim", funcao: "Articula-se com o acrômio da escápula (articulação acromioclavicular)" },
+  { id: 21, grupo: "Clavícula e Escápula", marco: "Ângulos da escápula (superior, inferior, lateral)", osso: "Escápula", regiao: "—", face: "—", palpavel: "Sim", funcao: "Pontos de referência estrutural; o ângulo lateral origina a cavidade glenoidal" },
+  { id: 22, grupo: "Clavícula e Escápula", marco: "Bordas da escápula (medial, lateral, superior)", osso: "Escápula", regiao: "—", face: "—", palpavel: "Sim", funcao: "Delimitam o corpo da escápula; fixação muscular (ex.: borda medial — romboides)" },
+  { id: 23, grupo: "Clavícula e Escápula", marco: "Espinha da escápula", osso: "Escápula", regiao: "—", face: "Posterior", palpavel: "Sim", funcao: "Divide as fossas supra e infraespinal; fixação do trapézio e do deltoide" },
+  { id: 24, grupo: "Clavícula e Escápula", marco: "Cavidade glenoidal", osso: "Escápula", regiao: "Lateral", face: "—", palpavel: "Não", funcao: "Articula-se com a cabeça do úmero (articulação do ombro)" },
+  { id: 25, grupo: "Clavícula e Escápula", marco: "Fossas da escápula (supraespinal e infraespinal)", osso: "Escápula", regiao: "—", face: "Posterior", palpavel: "Não", funcao: "Alojam os músculos supraespinal e infraespinal" },
+  { id: 26, grupo: "Clavícula e Escápula", marco: "Processo coracoide", osso: "Escápula", regiao: "—", face: "Anterior", palpavel: "Sim", funcao: "Fixação do bíceps braquial (cabeça curta), coracobraquial e peitoral menor" },
+  { id: 27, grupo: "Clavícula e Escápula", marco: "Acrômio", osso: "Escápula", regiao: "Lateral/Superior", face: "—", palpavel: "Sim", funcao: "Articula-se com a extremidade lateral da clavícula; fixação do deltoide e trapézio" },
+  { id: 28, grupo: "Coluna Vertebral — Vértebra Típica", marco: "Corpo vertebral", osso: "Vértebra", regiao: "—", face: "Anterior", palpavel: "Não", funcao: "Suporta o peso; une-se aos discos intervertebrais" },
+  { id: 29, grupo: "Coluna Vertebral — Vértebra Típica", marco: "Pedículo", osso: "Vértebra", regiao: "—", face: "—", palpavel: "Não", funcao: "Conecta o corpo vertebral às lâminas; forma parte do forame vertebral" },
+  { id: 30, grupo: "Coluna Vertebral — Vértebra Típica", marco: "Lâminas", osso: "Vértebra", regiao: "—", face: "Posterior", palpavel: "Não", funcao: "Formam a parte posterior do arco vertebral; protegem a medula" },
+  { id: 31, grupo: "Coluna Vertebral — Vértebra Típica", marco: "Processo espinhoso", osso: "Vértebra", regiao: "—", face: "Posterior", palpavel: "Sim", funcao: "Fixação de ligamentos e músculos paravertebrais" },
+  { id: 32, grupo: "Coluna Vertebral — Vértebra Típica", marco: "Processo transverso", osso: "Vértebra", regiao: "—", face: "Lateral", palpavel: "Não", funcao: "Fixação muscular/ligamentar; nas torácicas articula-se com as costelas" },
+  { id: 33, grupo: "Coluna Vertebral — Vértebra Típica", marco: "Canal medular", osso: "Vértebra", regiao: "—", face: "—", palpavel: "Não", funcao: "Aloja a medula espinhal" },
+  { id: 34, grupo: "Coluna Vertebral — Vértebra Típica", marco: "Fóvea costal", osso: "Vértebra torácica", regiao: "—", face: "Lateral", palpavel: "Não", funcao: "Local de articulação com a cabeça das costelas" },
+  { id: 35, grupo: "Coluna Vertebral — Atlas e Áxis", marco: "Dente do áxis (processo odontoide)", osso: "Áxis (C2)", regiao: "—", face: "—", palpavel: "Não", funcao: "Permite rotação da cabeça; articula-se com o arco anterior do atlas" },
+  { id: 36, grupo: "Coluna Vertebral — Atlas e Áxis", marco: "Arco anterior do atlas", osso: "Atlas (C1)", regiao: "—", face: "Anterior", palpavel: "Não", funcao: "Articula-se com o dente do áxis" },
+  { id: 37, grupo: "Coluna Vertebral — Atlas e Áxis", marco: "Arco posterior do atlas", osso: "Atlas (C1)", regiao: "—", face: "Posterior", palpavel: "Sim", funcao: "Forma a parte posterior do anel do atlas; sulco para a artéria vertebral" },
+  { id: 38, grupo: "Coluna Vertebral — Atlas e Áxis", marco: "Faces articulares superiores do atlas", osso: "Atlas (C1)", regiao: "—", face: "Superior", palpavel: "Não", funcao: "Articulam-se com os côndilos occipitais (articulação atlanto-occipital)" },
+  { id: 39, grupo: "Sacro e Cóccix", marco: "Promontório", osso: "Sacro", regiao: "Superior", face: "Anterior", palpavel: "Não", funcao: "Marco obstétrico importante; referência para medidas pélvicas" },
+  { id: 40, grupo: "Sacro e Cóccix", marco: "Asa do sacro", osso: "Sacro", regiao: "Superior", face: "Lateral", palpavel: "Não", funcao: "Articula-se com o ílio (articulação sacroilíaca)" },
+  { id: 41, grupo: "Sacro e Cóccix", marco: "Cóccix", osso: "Cóccix", regiao: "—", face: "—", palpavel: "Sim", funcao: "Remanescente da cauda; fixação de ligamentos e músculos do assoalho pélvico" },
+  { id: 42, grupo: "Esterno", marco: "Manúbrio", osso: "Esterno", regiao: "Superior", face: "—", palpavel: "Sim", funcao: "Articula-se com as clavículas e o 1º par de costelas" },
+  { id: 43, grupo: "Esterno", marco: "Corpo do esterno", osso: "Esterno", regiao: "Intermediária/Inferior", face: "—", palpavel: "Sim", funcao: "Articula-se com a maioria das costelas (2ª a 7ª)" },
+  { id: 44, grupo: "Esterno", marco: "Processo xifoide", osso: "Esterno", regiao: "Inferior", face: "—", palpavel: "Sim", funcao: "Fixação do diafragma e de músculos abdominais" },
+  { id: 45, grupo: "Esterno", marco: "Incisura jugular", osso: "Esterno (manúbrio)", regiao: "Superior", face: "—", palpavel: "Sim", funcao: "Referência palpável entre as clavículas" },
+  { id: 46, grupo: "Esterno", marco: "Incisura clavicular", osso: "Esterno (manúbrio)", regiao: "Superior", face: "Superolateral", palpavel: "Não", funcao: "Articula-se com a extremidade esternal da clavícula" },
+  { id: 47, grupo: "Costelas e Mandíbula", marco: "Costelas", osso: "Costela", regiao: "—", face: "—", palpavel: "Parcial", funcao: "Protegem órgãos torácicos; participam da mecânica respiratória" },
+  { id: 48, grupo: "Costelas e Mandíbula", marco: "Corpo da mandíbula", osso: "Mandíbula", regiao: "Inferior", face: "—", palpavel: "Sim", funcao: "Porção horizontal que sustenta os dentes inferiores" },
+  { id: 49, grupo: "Quadril e Fêmur Proximal", marco: "Cabeça do fêmur", osso: "Fêmur", regiao: "Proximal", face: "—", palpavel: "Não", funcao: "Articula-se com o acetábulo (articulação do quadril)" },
+  { id: 50, grupo: "Quadril e Fêmur Proximal", marco: "Fóvea da cabeça do fêmur", osso: "Fêmur", regiao: "Proximal", face: "—", palpavel: "Não", funcao: "Fixação do ligamento da cabeça do fêmur (ligamento redondo)" },
+  { id: 51, grupo: "Quadril e Fêmur Proximal", marco: "Colo do fêmur", osso: "Fêmur", regiao: "Proximal", face: "—", palpavel: "Não", funcao: "Conecta a cabeça à diáfise; local comum de fratura em idosos" },
+  { id: 52, grupo: "Quadril e Fêmur Proximal", marco: "Trocânter maior do fêmur", osso: "Fêmur", regiao: "Proximal", face: "Lateral", palpavel: "Sim", funcao: "Fixação de músculos glúteos e outros rotadores/abdutores do quadril" },
+  { id: 53, grupo: "Quadril e Fêmur Proximal", marco: "Trocânter menor do fêmur", osso: "Fêmur", regiao: "Proximal", face: "Posteromedial", palpavel: "Não", funcao: "Fixação do músculo iliopsoas" },
+  { id: 54, grupo: "Quadril e Fêmur Proximal", marco: "Linha intertrocantérica", osso: "Fêmur", regiao: "Proximal", face: "Anterior", palpavel: "Não", funcao: "Fixação do ligamento iliofemoral" },
+  { id: 55, grupo: "Quadril e Fêmur Proximal", marco: "Linha áspera", osso: "Fêmur", regiao: "Diáfise", face: "Posterior", palpavel: "Não", funcao: "Fixação de músculos adutores e porções do quadríceps (vasto medial/lateral)" },
+  { id: 56, grupo: "Quadril e Fêmur Proximal", marco: "Crista ilíaca", osso: "Ílio", regiao: "Superior", face: "—", palpavel: "Sim", funcao: "Fixação de músculos abdominais e do latíssimo do dorso" },
+  { id: 57, grupo: "Quadril e Fêmur Proximal", marco: "Espinha ilíaca ântero-superior e ântero-inferior (EIAS/EIAI)", osso: "Ílio", regiao: "—", face: "Anterior", palpavel: "Sim", funcao: "Fixação muscular/ligamentar (ex.: EIAS — sartório e tensor da fáscia lata; EIAI — reto femoral)" },
+  { id: 58, grupo: "Quadril e Fêmur Proximal", marco: "Espinha ilíaca póstero-superior e póstero-inferior (EIPS/EIPI)", osso: "Ílio", regiao: "—", face: "Posterior", palpavel: "Sim", funcao: "Fixação muscular/ligamentar; EIPS corresponde à \"fossinha\" lombar visível na superfície" },
+  { id: 59, grupo: "Quadril e Fêmur Proximal", marco: "Asa do ílio", osso: "Ílio", regiao: "—", face: "—", palpavel: "Parcial", funcao: "Porção larga e expandida; forma a fossa ilíaca" },
+  { id: 60, grupo: "Quadril e Fêmur Proximal", marco: "Forame obturatório", osso: "Ísquio/Púbis", regiao: "Anteroinferior da pelve", face: "—", palpavel: "Não", funcao: "Espaço por onde passam vasos e o nervo obturatório" },
+  { id: 61, grupo: "Quadril e Fêmur Proximal", marco: "Ramo do púbis", osso: "Púbis", regiao: "—", face: "—", palpavel: "Não", funcao: "Parte do contorno do forame obturatório; une-se ao ísquio" },
+  { id: 62, grupo: "Quadril e Fêmur Proximal", marco: "Ramo do ísquio", osso: "Ísquio", regiao: "—", face: "—", palpavel: "Não", funcao: "Parte do contorno do forame obturatório; une-se ao púbis" },
+  { id: 63, grupo: "Quadril e Fêmur Proximal", marco: "Acetábulo", osso: "Quadril (ílio+ísquio+púbis)", regiao: "Lateral", face: "—", palpavel: "Não", funcao: "Articula-se com a cabeça do fêmur" },
+  { id: 64, grupo: "Quadril e Fêmur Proximal", marco: "Face sinfisial", osso: "Púbis", regiao: "Medial", face: "—", palpavel: "Não", funcao: "Articula-se com o púbis contralateral (sínfise púbica)" },
+  { id: 65, grupo: "Quadril e Fêmur Proximal", marco: "Tuberosidade isquiática", osso: "Ísquio", regiao: "—", face: "Posterior", palpavel: "Sim", funcao: "Fixação dos músculos isquiotibiais; suporta peso ao sentar" },
+  { id: 66, grupo: "Quadril e Fêmur Proximal", marco: "Face auricular", osso: "Ílio", regiao: "—", face: "Medial", palpavel: "Não", funcao: "Articula-se com o sacro (articulação sacroilíaca)" },
+  { id: 67, grupo: "Joelho", marco: "Côndilo medial do fêmur", osso: "Fêmur", regiao: "Distal", face: "Medial", palpavel: "Sim", funcao: "Articula-se com o côndilo medial da tíbia (articulação do joelho)" },
+  { id: 68, grupo: "Joelho", marco: "Côndilo lateral do fêmur", osso: "Fêmur", regiao: "Distal", face: "Lateral", palpavel: "Sim", funcao: "Articula-se com o côndilo lateral da tíbia (articulação do joelho)" },
+  { id: 69, grupo: "Joelho", marco: "Tróclea femoral", osso: "Fêmur", regiao: "Distal", face: "Anterior", palpavel: "Não", funcao: "Articula-se com a face posterior da patela" },
+  { id: 70, grupo: "Joelho", marco: "Sulco intercondilar", osso: "Fêmur", regiao: "Distal", face: "Posterior", palpavel: "Não", funcao: "Espaço entre os côndilos; fixação dos ligamentos cruzados" },
+  { id: 71, grupo: "Joelho", marco: "Patela", osso: "Patela", regiao: "—", face: "Anterior", palpavel: "Sim", funcao: "Osso sesamoide; aumenta a alavanca do quadríceps femoral" },
+  { id: 72, grupo: "Joelho", marco: "Platô tibial", osso: "Tíbia", regiao: "Proximal", face: "Superior", palpavel: "Parcial", funcao: "Superfície articular que recebe os côndilos femorais" },
+  { id: 73, grupo: "Joelho", marco: "Côndilo medial da tíbia", osso: "Tíbia", regiao: "Proximal", face: "Medial", palpavel: "Sim", funcao: "Compõe o platô tibial; articula-se com o côndilo medial do fêmur" },
+  { id: 74, grupo: "Joelho", marco: "Côndilo lateral da tíbia", osso: "Tíbia", regiao: "Proximal", face: "Lateral", palpavel: "Sim", funcao: "Compõe o platô tibial; articula-se com o côndilo lateral do fêmur" },
+  { id: 75, grupo: "Joelho", marco: "Eminência intercondilar", osso: "Tíbia", regiao: "Proximal", face: "Superior", palpavel: "Não", funcao: "Região relacionada à inserção dos ligamentos cruzados e às áreas intercondilares dos meniscos" },
+  { id: 76, grupo: "Joelho", marco: "Tuberosidade da tíbia", osso: "Tíbia", regiao: "Proximal", face: "Anterior", palpavel: "Sim", funcao: "Fixação do ligamento patelar" },
+  { id: 77, grupo: "Joelho", marco: "Margem anterior da tíbia", osso: "Tíbia", regiao: "Diáfise", face: "Anterior", palpavel: "Sim", funcao: "Crista subcutânea palpável (a \"canela\")" },
+  { id: 78, grupo: "Tornozelo e Pé", marco: "Cabeça da fíbula", osso: "Fíbula", regiao: "Proximal", face: "Lateral", palpavel: "Sim", funcao: "Fixação do bíceps femoral e do ligamento colateral lateral" },
+  { id: 79, grupo: "Tornozelo e Pé", marco: "Maléolo lateral", osso: "Fíbula", regiao: "Distal", face: "Lateral", palpavel: "Sim", funcao: "Estabiliza lateralmente o tornozelo" },
+  { id: 80, grupo: "Tornozelo e Pé", marco: "Maléolo medial", osso: "Tíbia", regiao: "Distal", face: "Medial", palpavel: "Sim", funcao: "Estabiliza medialmente o tornozelo" },
+  { id: 81, grupo: "Tornozelo e Pé", marco: "Tróclea do tálus", osso: "Tálus", regiao: "—", face: "Superior", palpavel: "Não", funcao: "Articula-se com a tíbia e a fíbula (articulação talocrural)" },
+  { id: 82, grupo: "Tornozelo e Pé", marco: "Cabeça do tálus", osso: "Tálus", regiao: "—", face: "Anterior", palpavel: "Sim", funcao: "Articula-se com o navicular" },
+  { id: 83, grupo: "Tornozelo e Pé", marco: "Processo lateral do tálus", osso: "Tálus", regiao: "—", face: "Lateral", palpavel: "Não", funcao: "Articula-se com a fíbula; ponto comum de fratura por inversão forçada" },
+  { id: 84, grupo: "Tornozelo e Pé", marco: "Processo posterior do tálus", osso: "Tálus", regiao: "—", face: "Posterior", palpavel: "Não", funcao: "Ponto de relação com o tendão do flexor longo do hálux" },
+  { id: 85, grupo: "Tornozelo e Pé", marco: "Calcâneo", osso: "Calcâneo", regiao: "—", face: "—", palpavel: "Sim", funcao: "Maior osso do tarso; forma o calcanhar; fixação do tendão do calcâneo (Aquiles)" },
+  { id: 86, grupo: "Tornozelo e Pé", marco: "Navicular", osso: "Navicular", regiao: "—", face: "Medial", palpavel: "Sim", funcao: "Osso do tarso entre o tálus e os cuneiformes" },
+  { id: 87, grupo: "Tornozelo e Pé", marco: "Cuboide", osso: "Cuboide", regiao: "—", face: "Lateral", palpavel: "Parcial", funcao: "Osso do tarso lateral; articula-se com o calcâneo e os metatarsos laterais" },
+  { id: 88, grupo: "Tornozelo e Pé", marco: "Cuneiforme medial", osso: "Cuneiforme", regiao: "—", face: "Medial", palpavel: "Parcial", funcao: "Articula-se com o metatarso correspondente e participa da formação dos arcos do pé" },
+  { id: 89, grupo: "Tornozelo e Pé", marco: "Cuneiforme intermédio", osso: "Cuneiforme", regiao: "—", face: "Intermediário", palpavel: "Parcial", funcao: "Articula-se com o metatarso correspondente e participa da formação dos arcos do pé" },
+  { id: 90, grupo: "Tornozelo e Pé", marco: "Cuneiforme lateral", osso: "Cuneiforme", regiao: "—", face: "Lateral", palpavel: "Parcial", funcao: "Articula-se com o metatarso correspondente e participa da formação dos arcos do pé" },
+  { id: 91, grupo: "Tornozelo e Pé", marco: "Metatarsos", osso: "Metatarso", regiao: "—", face: "—", palpavel: "Sim", funcao: "Ossos longos do pé, entre o tarso e as falanges" },
+  { id: 92, grupo: "Tornozelo e Pé", marco: "Falanges (pé)", osso: "Falanges", regiao: "Distal", face: "—", palpavel: "Sim", funcao: "Ossos dos dedos do pé" },
+];
+
+/* =========================================================================
+   DETETIVE ÓSSEO — o aluno sorteia uma pista (gerada a partir do banco de
+   marcos ósseos acima) e escolhe entre 5 opções, contra o tempo. As opções
+   erradas são sempre estruturas parecidas (mesmo osso, ou mesmo grupo
+   anatômico), pra exigir raciocínio de verdade, não só reconhecimento.
+   ========================================================================= */
+
+function gerarPista(m) {
+  const partes = [];
+  if (m.regiao && m.regiao !== "—") partes.push("na região " + m.regiao.toLowerCase());
+  if (m.face && m.face !== "—") partes.push("na face/localização " + m.face.toLowerCase());
+  const localizacao = partes.length ? ", " + partes.join(", ") : "";
+  return `Sou uma estrutura do(a) ${m.osso}${localizacao}. ${m.funcao}.`;
+}
+
+function embaralhar(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function gerarOpcoes(correta, banco) {
+  const mesmoOsso = banco.filter((m) => m.id !== correta.id && m.osso === correta.osso && m.osso);
+  const mesmoGrupo = banco.filter((m) => m.id !== correta.id && m.grupo === correta.grupo && m.osso !== correta.osso);
+  const resto = banco.filter((m) => m.id !== correta.id && m.grupo !== correta.grupo && m.osso !== correta.osso);
+
+  const candidatos = [...embaralhar(mesmoOsso), ...embaralhar(mesmoGrupo), ...embaralhar(resto)];
+  const distratores = candidatos.slice(0, 4);
+  return embaralhar([correta, ...distratores]);
+}
+
+function gerarRodadas(banco, quantidade) {
+  const sorteados = embaralhar(banco).slice(0, quantidade);
+  return sorteados.map((m) => ({
+    correta: m,
+    pista: gerarPista(m),
+    opcoes: gerarOpcoes(m, banco),
+  }));
+}
+
+const DETETIVE_DIFICULDADES = [
+  { id: "facil", label: "Fácil", tempo: 40 },
+  { id: "medio", label: "Médio", tempo: 30 },
+  { id: "dificil", label: "Difícil", tempo: 20 },
+  { id: "mestre", label: "Mestre da Anatomia", tempo: 10 },
+];
+
+const DETETIVE_GRUPOS = [...new Set(MARCOS_OSSEOS.map((m) => m.grupo))];
+
+function DetetiveOsseo({ onBack }) {
+  const { useState, useEffect, useRef } = React;
+
+  const [fase, setFase] = useState("intro"); // "intro" | "jogando" | "fim"
+  const [dificuldade, setDificuldade] = useState("dificil");
+  const [numPerguntas, setNumPerguntas] = useState(12);
+  const [gruposSelecionados, setGruposSelecionados] = useState(DETETIVE_GRUPOS);
+  const [rodadas, setRodadas] = useState([]);
+  const [indice, setIndice] = useState(0);
+  const [tempo, setTempo] = useState(20);
+  const [pontuacao, setPontuacao] = useState(0);
+  const [selecionado, setSelecionado] = useState(null);
+  const [travarToque, setTravarToque] = useState(false);
+  const timerRef = useRef(null);
+
+  const ROUND_TIME = DETETIVE_DIFICULDADES.find((d) => d.id === dificuldade).tempo;
+
+  function toggleGrupo(g) {
+    setGruposSelecionados((prev) =>
+      prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
+    );
+  }
+
+  function iniciar() {
+    const banco = MARCOS_OSSEOS.filter((m) => gruposSelecionados.includes(m.grupo));
+    const bancoFinal = banco.length > 0 ? banco : MARCOS_OSSEOS;
+    setRodadas(gerarRodadas(bancoFinal, numPerguntas));
+    setIndice(0);
+    setPontuacao(0);
+    setTempo(ROUND_TIME);
+    setSelecionado(null);
+    setTravarToque(false);
+    setFase("jogando");
+  }
+
+  const rodadaAtual = rodadas[indice];
+
+  useEffect(() => {
+    if (fase !== "jogando") return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      setTempo((t) => {
+        if (t <= 1) {
+          clearInterval(timerRef.current);
+          avancar(false, null);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line
+  }, [fase, indice]);
+
+  function avancar(acertou, marcoEscolhido) {
+    setTravarToque(true);
+    setSelecionado(marcoEscolhido);
+    if (acertou) setPontuacao((p) => p + 1);
+    setTimeout(() => {
+      setSelecionado(null);
+      setTravarToque(false);
+      if (indice + 1 >= rodadas.length) {
+        setFase("fim");
+      } else {
+        setIndice((i) => i + 1);
+        setTempo(ROUND_TIME);
+      }
+    }, 900);
+  }
+
+  function escolher(opcao) {
+    if (travarToque) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    avancar(opcao.id === rodadaAtual.correta.id, opcao.marco);
+  }
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      <div
+        className="px-5 pb-4 border-b flex items-center justify-between"
+        style={{ borderColor: "#E5E5EA", background: "#FFFFFF", paddingTop: "calc(env(safe-area-inset-top) + 1.25rem)" }}
+      >
+        <div>
+          <h1 className="text-xl font-bold" style={{ color: "#1D1D1F" }}>Detetive Ósseo</h1>
+          <p className="text-sm" style={{ color: "#6E6E73" }}>Anatomia Óssea</p>
+        </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap"
+            style={{ background: "#F5F5F7", border: "1px solid #E5E5EA", color: "#6E6E73" }}
+          >
+            ← FisioLab
+          </button>
+        )}
+      </div>
+
+      <div className="p-4 max-w-md mx-auto">
+        {fase === "intro" && (
+          <div className="space-y-4">
+            <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+              <p className="text-sm leading-relaxed" style={{ color: "#1D1D1F" }}>
+                Leia a pista e descubra qual marco ósseo é. As opções erradas são sempre
+                estruturas parecidas, então preste atenção nos detalhes.
+              </p>
+            </div>
+
+            <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#22C55E" }}>Dificuldade</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DETETIVE_DIFICULDADES.map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => setDificuldade(d.id)}
+                    className="py-2 rounded-lg text-xs font-semibold leading-tight"
+                    style={dificuldade === d.id ? { background: "#22C55E", color: "#FFFFFF" } : { background: "#F5F5F7", color: "#6E6E73", border: "1px solid #E5E5EA" }}
+                  >
+                    {d.label}
+                    <br />
+                    <span style={{ fontWeight: 400, opacity: 0.85 }}>{d.tempo}s</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#22C55E" }}>Número de perguntas</p>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ background: "#EAFBF0", color: "#16A34A" }}>{numPerguntas}</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={15}
+                value={numPerguntas}
+                onChange={(e) => setNumPerguntas(Number(e.target.value))}
+                className="w-full"
+                style={{ accentColor: "#22C55E" }}
+              />
+            </div>
+
+            <div className="rounded-2xl p-4" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#22C55E" }}>Parte do corpo</p>
+                <button
+                  onClick={() => setGruposSelecionados(gruposSelecionados.length === DETETIVE_GRUPOS.length ? [] : DETETIVE_GRUPOS)}
+                  className="text-xs font-medium"
+                  style={{ color: "#6E6E73" }}
+                >
+                  {gruposSelecionados.length === DETETIVE_GRUPOS.length ? "Limpar" : "Selecionar todas"}
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {DETETIVE_GRUPOS.map((g) => (
+                  <label key={g} className="flex items-center gap-2 text-sm" style={{ color: "#1D1D1F" }}>
+                    <input type="checkbox" checked={gruposSelecionados.includes(g)} onChange={() => toggleGrupo(g)} />
+                    {g}
+                  </label>
+                ))}
+              </div>
+              {gruposSelecionados.length === 0 && (
+                <p className="text-xs mt-2" style={{ color: "#9A9AA0" }}>Nenhuma selecionada — o jogo usa o banco inteiro.</p>
+              )}
+            </div>
+
+            <button onClick={iniciar} className="w-full py-2.5 rounded-full text-sm font-semibold" style={{ background: "#22C55E", color: "#FFFFFF" }}>
+              Começar
+            </button>
+          </div>
+        )}
+
+        {fase === "jogando" && rodadaAtual && (
+          <>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold" style={{ color: "#6E6E73" }}>
+                Rodada {indice + 1}/{rodadas.length} · Pontos: {pontuacao}
+              </p>
+              <span
+                className="text-xs font-bold px-2.5 py-1 rounded-full"
+                style={{ background: tempo <= 5 ? "#FEE2E2" : "#EAFBF0", color: tempo <= 5 ? "#DC2626" : "#16A34A" }}
+              >
+                {tempo}s
+              </span>
+            </div>
+
+            <div className="rounded-2xl p-4 mb-4" style={{ background: "#1D1D1F" }}>
+              <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: "#22C55E" }}>🔍 Pista</p>
+              <p className="text-sm leading-relaxed" style={{ color: "#FFFFFF" }}>{rodadaAtual.pista}</p>
+            </div>
+
+            <div className="space-y-2">
+              {rodadaAtual.opcoes.map((op) => {
+                const foiSelecionado = selecionado === op.marco;
+                const ehCorreta = op.id === rodadaAtual.correta.id;
+                let estilo = { background: "#FFFFFF", border: "1px solid #E5E5EA", color: "#1D1D1F" };
+                if (selecionado) {
+                  if (ehCorreta) estilo = { background: "#EAFBF0", border: "1px solid #22C55E", color: "#15803D" };
+                  else if (foiSelecionado) estilo = { background: "#FEE2E2", border: "1px solid #EF4444", color: "#DC2626" };
+                }
+                return (
+                  <button
+                    key={op.id}
+                    onClick={() => escolher(op)}
+                    disabled={travarToque}
+                    className="w-full text-left rounded-xl px-4 py-3 text-sm font-medium"
+                    style={estilo}
+                  >
+                    {op.marco}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {fase === "fim" && (
+          <div className="rounded-2xl p-5 text-center" style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}>
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#22C55E" }}>Resultado</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: "#1D1D1F" }}>{pontuacao} / {rodadas.length}</p>
+            <p className="text-sm mb-4" style={{ color: "#6E6E73" }}>
+              {pontuacao === rodadas.length ? "Detetive nível especialista!" : pontuacao >= rodadas.length * 0.7 ? "Muito bom!" : "Vale revisar os marcos e jogar de novo."}
+            </p>
+            <button onClick={iniciar} className="w-full py-2.5 rounded-full text-sm font-semibold" style={{ background: "#22C55E", color: "#FFFFFF" }}>
+              Jogar de novo
+            </button>
+          </div>
+        )}
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   TELA INICIAL — catálogo de ferramentas do FisioLab.
+   Para adicionar uma nova ferramenta no futuro: crie o componente e
+   acrescente uma entrada no array TOOLS abaixo.
+   ========================================================================= */
+
+const TOOLS = [
+  {
+    id: "correntes",
+    title: "Simulador de Correntes",
+    subtitle: "Recursos Físicos",
+    description: "Visualize tipos de corrente elétrica e seus parâmetros em tempo real.",
+    component: SimuladorCorrentes,
+  },
+  {
+    id: "eletro-clinico",
+    title: "Simulador Clínico",
+    subtitle: "Recursos Físicos",
+    description: "Configure o aparelho de eletroterapia certo pra cada caso.",
+    component: SimuladorEletroterapiaClinico,
+  },
+  {
+    id: "detetive-osseo",
+    title: "Detetive Ósseo",
+    subtitle: "Cinesiologia e Biomecânica",
+    description: "Decifre a pista e descubra o marco ósseo, contra o tempo.",
+    component: DetetiveOsseo,
+  },
+  {
+    id: "palavras-cruzadas",
+    title: "Palavras Cruzadas",
+    subtitle: "Cinesiologia e Biomecânica",
+    description: "Revise os termos fundamentais de cinesiologia jogando.",
+    component: PalavrasCruzadas,
+  },
+  {
+    id: "palavras-cruzadas-anatomia",
+    title: "Palavras Cruzadas",
+    subtitle: "Cinesiologia e Biomecânica",
+    description: "Revise classificação, posicionamento e estrutura óssea jogando.",
+    component: PalavrasCruzadasAnatomia,
+  },
+  {
+    id: "posicionamento",
+    title: "Posicionamento Anatômico",
+    subtitle: "Cinesiologia e Biomecânica",
+    description: "Toque no ponto certo antes que o tempo acabe.",
+    component: JogoPosicionamento,
+  },
+  {
+    id: "super-trunfo",
+    title: "Super Trunfo",
+    subtitle: "Recursos Físicos",
+    description: "Jogue em dupla comparando atributos dos recursos de eletroterapia.",
+    component: SuperTrunfo,
+  },
+  {
+    id: "alavancas",
+    title: "Visualizador de Alavancas",
+    subtitle: "Cinesiologia e Biomecânica",
+    description: "Ajuste forças e posições e veja o torque e a contração resultante.",
+    component: VisualizadorAlavancas,
+  },
+];
+
+// Ferramentas externas — abrem em outra aba (ex.: artifacts publicados no Claude.ai)
+const EXTERNAL_TOOLS = [
+  {
+    id: "consultorio-virtual",
+    title: "Consultório Virtual",
+    subtitle: "Ortopedia e Traumatologia",
+    description: "Avalie casos clínicos simulados com IA e pratique seu diagnóstico.",
+    url: "https://claude.ai/public/artifacts/0e215812-fa6f-484a-8c05-25e0c19801f6",
+  },
+];
+
+// Ordem de exibição por categoria de conteúdo — para adicionar uma nova
+// categoria, é só incluir o nome aqui na posição desejada.
+const CATEGORY_ORDER = ["Recursos Físicos", "Ortopedia e Traumatologia", "Cinesiologia e Biomecânica"];
+
+const ALL_TOOLS_SORTED = [
+  ...TOOLS.map((t) => ({ ...t, type: "internal" })),
+  ...EXTERNAL_TOOLS.map((t) => ({ ...t, type: "external" })),
+].sort((a, b) => {
+  const ia = CATEGORY_ORDER.indexOf(a.subtitle);
+  const ib = CATEGORY_ORDER.indexOf(b.subtitle);
+  return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+});
+
+function EmailIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="M2 6l10 7 10-7" />
+    </svg>
+  );
+}
+
+function InstagramIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function ContactFooter({ dark }) {
+  const textColor = dark ? "#8A94A0" : "#A1A1A6";
+  const pillBg = dark ? "#171B21" : "#FFFFFF";
+  const pillBorder = dark ? "#3A4650" : "#E5E5EA";
+  const pillText = dark ? "#DCE1E5" : "#1D1D1F";
+  const pillStyle = { background: pillBg, border: `1px solid ${pillBorder}`, color: pillText };
+  return (
+    <div className="mt-8 text-center px-4 pb-8">
+      <p className="text-xs mb-3" style={{ color: textColor }}>
+        Desenvolvido por Prof. Felipe Cerqueira
+      </p>
+      <div className="flex justify-center mb-2">
+        <a href="mailto:suporte@ortoflix.com" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={pillStyle}>
+          <EmailIcon /> suporte@ortoflix.com
+        </a>
+      </div>
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <a href="https://instagram.com/felipe_cerqueira" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={pillStyle}>
+          <InstagramIcon /> Prof. Felipe Cerqueira
+        </a>
+        <a href="https://instagram.com/ortoflix" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full" style={pillStyle}>
+          <InstagramIcon /> OrtoFlix
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function logAcesso(user, tool) {
+  if (!user) return;
+  try {
+    db.collection("acessos").add({
+      userId: user.uid,
+      userName: user.displayName || user.email || "(sem nome)",
+      toolId: tool.id,
+      toolTitle: tool.title,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    // falha silenciosa — não deve atrapalhar o uso do app
+  }
+}
+
+function ToolCard({ tool, onSelect, user }) {
+  const { useState } = React;
+  const [showLock, setShowLock] = useState(false);
+  const [pass, setPass] = useState("");
+  const [passError, setPassError] = useState("");
+
+  function handleClick() {
+    if (tool.locked) {
+      setShowLock(true);
+    } else {
+      logAcesso(user, tool);
+      onSelect(tool.id);
+    }
+  }
+
+  function tryUnlock() {
+    if (pass === ADMIN_PASSCODE) {
+      setShowLock(false);
+      setPass("");
+      setPassError("");
+      logAcesso(user, tool);
+      onSelect(tool.id);
+    } else {
+      setPassError("Senha incorreta.");
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        className="text-left rounded-2xl p-5 w-full transition-shadow hover:shadow-md relative"
+        style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}
+      >
+        {tool.locked && (
+          <span
+            className="absolute top-3 right-3 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: "#FEF3C7", color: "#92400E" }}
+          >
+            Em breve
+          </span>
+        )}
+        <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "#22C55E" }}>
+          {tool.subtitle}
+        </p>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: "#1D1D1F" }}>
+          {tool.title}
+        </h3>
+        <p className="text-sm leading-relaxed" style={{ color: "#6E6E73" }}>
+          {tool.description}
+        </p>
+      </button>
+
+      {showLock && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-5"
+          style={{ background: "rgba(29,29,31,0.5)" }}
+          onClick={() => { setShowLock(false); setPass(""); setPassError(""); }}
+        >
+          <div
+            className="max-w-xs w-full rounded-2xl p-5"
+            style={{ background: "#FFFFFF" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold mb-1" style={{ color: "#1D1D1F" }}>Em desenvolvimento</p>
+            <p className="text-xs mb-3" style={{ color: "#6E6E73" }}>Essa ferramenta ainda está em testes. Digite a senha para acessar.</p>
+            <input
+              type="password"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && tryUnlock()}
+              className="w-full rounded-lg px-3 py-2 text-sm border outline-none mb-2"
+              style={{ borderColor: "#E5E5EA" }}
+              autoFocus
+            />
+            {passError && <p className="text-xs mb-2" style={{ color: "#EF4444" }}>{passError}</p>}
+            <button onClick={tryUnlock} className="w-full py-2 rounded-full text-sm font-semibold" style={{ background: "#22C55E", color: "#FFFFFF" }}>
+              Entrar
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ExternalToolCard({ tool, user }) {
+  return (
+    <a
+      href={tool.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => logAcesso(user, tool)}
+      className="text-left rounded-2xl p-5 w-full block transition-shadow hover:shadow-md"
+      style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#22C55E" }}>
+          {tool.subtitle}
+        </p>
+        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: "#6E6E73", background: "#F2F2F7" }}>
+          requer código do professor
+        </span>
+      </div>
+      <h3 className="text-lg font-semibold mb-1" style={{ color: "#1D1D1F" }}>
+        {tool.title} ↗
+      </h3>
+      <p className="text-sm leading-relaxed mb-2" style={{ color: "#6E6E73" }}>
+        {tool.description}
+      </p>
+      <p className="text-[11px] leading-snug" style={{ color: "#9A9AA0" }}>
+        💡 Toque e segure o card, depois escolha "Abrir em 2º Plano"
+      </p>
+    </a>
+  );
+}
+
+function OrtoFlixCard({ user }) {
+  return (
+    <a
+      href="https://sso.hotmart.com/login"
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => logAcesso(user, { id: "ortoflix-plataforma", title: "Acessar minha plataforma OrtoFlix" })}
+      className="text-left rounded-2xl p-5 w-full block transition-shadow hover:shadow-md"
+      style={{ background: "#FFFFFF", border: "1px solid #E5E5EA" }}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#E8192C" }}>
+          OrtoFlix
+        </p>
+        <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ color: "#6E6E73", background: "#F2F2F7" }}>
+          abre em outra aba
+        </span>
+      </div>
+      <h3 className="text-lg font-semibold mb-1" style={{ color: "#1D1D1F" }}>
+        Acessar minha plataforma OrtoFlix ↗
+      </h3>
+      <p className="text-sm leading-relaxed" style={{ color: "#6E6E73" }}>
+        Acesse o conteúdo da sua assinatura agora mesmo!
+      </p>
+    </a>
+  );
+}
+
+function CubeIcon({ size = 56 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      <path d="M50,8 L86.4,29 L50,50 L13.6,29 Z" fill="#FFFFFF" stroke="#12233A" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M13.6,29 L50,50 L50,92 L13.6,71 Z" fill="#F2F2F2" stroke="#12233A" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M50,50 L86.4,29 L86.4,71 L50,92 Z" fill="#22C55E" stroke="#12233A" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+const ADMIN_PASSCODE = "231087";
+
+function Home({ onSelect, user }) {
+  const [showAbout, setShowAbout] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
+  const [installTab, setInstallTab] = useState(
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ? "ios" : "android"
+  );
+  const [perfil, setPerfil] = useState(null);
+  const [showPromoPopup, setShowPromoPopup] = useState(false);
+  const [promoData, setPromoData] = useState(null);
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let ultimaCampanhaVista = null;
+    db.collection("usuarios").doc(user.uid).get()
+      .then((doc) => {
+        const data = doc.exists ? doc.data() : {};
+        setPerfil(data.perfil || null);
+        ultimaCampanhaVista = data.ultimaCampanhaVista || null;
+        return db.collection("config").doc("promocao").get();
+      })
+      .then((promoSnap) => {
+        if (promoSnap && promoSnap.exists) {
+          const p = promoSnap.data();
+          if (p.ativa && p.campanhaId && p.campanhaId !== ultimaCampanhaVista) {
+            setPromoData(p);
+            setShowPromoPopup(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
+  function fecharPromoPopup() {
+    setShowPromoPopup(false);
+    if (promoData && promoData.campanhaId && user) {
+      db.collection("usuarios").doc(user.uid).set({ ultimaCampanhaVista: promoData.campanhaId }, { merge: true }).catch(() => {});
+    }
+  }
+
+  function handleLogoTap() {
+    tapCountRef.current += 1;
+    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+    if (tapCountRef.current >= 5) {
+      tapCountRef.current = 0;
+      window.location.href = "painel.html";
+    } else {
+      tapTimerRef.current = setTimeout(() => { tapCountRef.current = 0; }, 2000);
+    }
+  }
+
+  return (
+    <div className="min-h-screen w-full" style={{ background: "#F5F5F7" }}>
+      {showPromoPopup && promoData && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-5"
+          style={{ background: "rgba(29,29,31,0.6)" }}
+          onClick={fecharPromoPopup}
+        >
+          <div
+            className="max-w-sm w-full rounded-2xl p-6 text-center"
+            style={{ background: "#FFFFFF" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold mb-2" style={{ color: "#1D1D1F" }}>{promoData.titulo}</h3>
+            <p className="text-sm leading-relaxed mb-4" style={{ color: "#6E6E73" }}>{promoData.descricao}</p>
+            {promoData.cta && (
+              <div className="rounded-xl p-3 mb-4" style={{ background: "#EAFBF0", border: "1px solid #BBF7D0" }}>
+                <p className="text-sm font-medium" style={{ color: "#16A34A" }}>{promoData.cta}</p>
+              </div>
+            )}
+            <button
+              onClick={fecharPromoPopup}
+              className="w-full py-2.5 rounded-full text-sm font-semibold"
+              style={{ background: "#22C55E", color: "#FFFFFF" }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 pb-6 flex items-center justify-center gap-3" style={{ paddingTop: "calc(env(safe-area-inset-top) + 2.5rem)" }}>
+        <div onClick={handleLogoTap}>
+          <CubeIcon size={56} />
+        </div>
+        <div className="text-left">
+          <h1 className="text-4xl leading-none" style={{ color: "#1D1D1F", fontFamily: "'Poppins', sans-serif", fontWeight: 800 }}>
+            Fisio<span style={{ color: "#22C55E" }}>Lab</span>
+          </h1>
+          <p className="text-sm mt-1" style={{ color: "#6E6E73" }}>
+            by OrtoFlix — Ambiente de Estudo
+          </p>
+        </div>
+      </div>
+
+      <div className="text-center -mt-3 mb-2 flex items-center justify-center gap-3">
+        <button
+          onClick={() => setShowAbout(true)}
+          className="text-xs"
+          style={{ color: "#9A9AA0" }}
+        >
+          Sobre
+        </button>
+        <span style={{ color: "#D2D2D7" }}>·</span>
+        <button
+          onClick={() => setShowInstall(true)}
+          className="text-xs"
+          style={{ color: "#9A9AA0" }}
+        >
+          Instalar app
+        </button>
+        <span style={{ color: "#D2D2D7" }}>·</span>
+        <button
+          onClick={() => auth.signOut()}
+          className="text-xs"
+          style={{ color: "#9A9AA0" }}
+        >
+          Sair da conta
+        </button>
+      </div>
+
+      {perfil === "professor" && (
+        <div className="text-center mb-2">
+          <a
+            href="manual-professor.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium"
+            style={{ color: "#22C55E" }}
+          >
+            📄 Manual do Professor
+          </a>
+        </div>
+      )}
+
+      {showInstall && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-5"
+          style={{ background: "rgba(29,29,31,0.5)" }}
+          onClick={() => setShowInstall(false)}
+        >
+          <div
+            className="max-w-sm w-full rounded-2xl p-6"
+            style={{ background: "#FFFFFF" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold mb-3" style={{ color: "#1D1D1F" }}>
+              Instalar o FisioLab
+            </h3>
+
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setInstallTab("ios")}
+                className="flex-1 py-2 rounded-lg text-sm font-medium"
+                style={installTab === "ios" ? { background: "#22C55E", color: "#FFFFFF" } : { background: "#F5F5F7", color: "#6E6E73", border: "1px solid #E5E5EA" }}
+              >
+                iPhone
+              </button>
+              <button
+                onClick={() => setInstallTab("android")}
+                className="flex-1 py-2 rounded-lg text-sm font-medium"
+                style={installTab === "android" ? { background: "#22C55E", color: "#FFFFFF" } : { background: "#F5F5F7", color: "#6E6E73", border: "1px solid #E5E5EA" }}
+              >
+                Android
+              </button>
+            </div>
+
+            {installTab === "ios" ? (
+              <ol className="text-sm leading-relaxed space-y-2 mb-5" style={{ color: "#1D1D1F" }}>
+                <li>1. Abra o FisioLab no <strong>Safari</strong>.</li>
+                <li>2. Toque no ícone de compartilhar (o quadrado com a seta pra cima), na barra do navegador.</li>
+                <li>3. Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong>.</li>
+                <li>4. Toque em <strong>"Adicionar"</strong> no canto superior direito.</li>
+              </ol>
+            ) : (
+              <ol className="text-sm leading-relaxed space-y-2 mb-5" style={{ color: "#1D1D1F" }}>
+                <li>1. Abra o FisioLab no <strong>Chrome</strong>.</li>
+                <li>2. Toque nos três pontinhos (⋮) no canto superior direito.</li>
+                <li>3. Toque em <strong>"Adicionar à tela inicial"</strong> (ou "Instalar app").</li>
+                <li>4. Confirme tocando em <strong>"Adicionar"</strong> ou <strong>"Instalar"</strong>.</li>
+              </ol>
+            )}
+
+            <p className="text-xs mb-4" style={{ color: "#9A9AA0" }}>
+              Depois disso, o ícone do FisioLab fica na sua tela inicial, igual a um aplicativo normal.
+            </p>
+
+            <button
+              onClick={() => setShowInstall(false)}
+              className="w-full text-center text-xs"
+              style={{ color: "#9A9AA0" }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showAbout && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-5"
+          style={{ background: "rgba(29,29,31,0.5)" }}
+          onClick={() => setShowAbout(false)}
+        >
+          <div
+            className="max-w-sm w-full rounded-2xl p-6"
+            style={{ background: "#FFFFFF" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm leading-relaxed mb-3" style={{ color: "#1D1D1F" }}>
+              Olá! Eu sou o Prof. Felipe Cerqueira, fisioterapeuta, professor
+              e diretor da OrtoFlix.
+            </p>
+            <p className="text-sm leading-relaxed mb-3" style={{ color: "#1D1D1F" }}>
+              Criei o FisioLab para reunir ferramentas que ajudam no
+              aprendizado da fisioterapia de forma prática e interativa. A
+              ideia é oferecer recursos que eu gostaria que todos os meus
+              alunos tivessem à disposição durante a graduação, mas que
+              também podem ser úteis para professores e profissionais.
+            </p>
+            <p className="text-sm leading-relaxed mb-5" style={{ color: "#1D1D1F" }}>
+              O FisioLab faz parte da OrtoFlix, uma plataforma que desenvolvi
+              para compartilhar conhecimento em fisioterapia ortopédica. Se
+              quiser conhecer um pouco mais sobre esse projeto, basta clicar
+              abaixo.
+            </p>
+            <a
+              href="https://ortoflix.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-center text-sm font-semibold px-5 py-2.5 rounded-full mb-3"
+              style={{ background: "#22C55E", color: "#FFFFFF" }}
+            >
+              Conhecer a OrtoFlix →
+            </a>
+            <button
+              onClick={() => setShowAbout(false)}
+              className="w-full text-center text-xs"
+              style={{ color: "#9A9AA0" }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="px-5 pb-6 max-w-2xl mx-auto">
+        <p className="text-xs font-semibold uppercase tracking-wide mb-3" style={{ color: "#6E6E73" }}>
+          Ferramentas
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {ALL_TOOLS_SORTED.map((tool) =>
+            tool.type === "external" ? (
+              <ExternalToolCard key={tool.id} tool={tool} user={user} />
+            ) : (
+              <ToolCard key={tool.id} tool={tool} onSelect={onSelect} user={user} />
+            )
+          )}
+          <OrtoFlixCard user={user} />
+        </div>
+
+        <div className="mt-8 rounded-2xl p-6 text-center" style={{ background: "#1D1D1F" }}>
+          <img
+            src="ortoflix-logo.png"
+            alt="OrtoFlix"
+            style={{ maxWidth: "170px", width: "50%", height: "auto", margin: "0 auto 16px" }}
+          />
+          <p className="text-sm leading-relaxed mb-4" style={{ color: "#A1A1A6" }}>
+            O maior streaming de fisioterapia ortopédica do Brasil. Conteúdo
+            em série para estudantes e profissionais.
+          </p>
+          <a
+            href="https://ortoflix.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block text-sm font-semibold px-5 py-2.5 rounded-full"
+            style={{ background: "#22C55E", color: "#FFFFFF" }}
+          >
+            Acessar OrtoFlix →
+          </a>
+        </div>
+
+        <ContactFooter />
+      </div>
+    </div>
+  );
+}
+
+function App({ user }) {
+  const [selected, setSelected] = useState(null);
+  const tool = TOOLS.find((t) => t.id === selected);
+
+  if (!selected || !tool) {
+    return <Home onSelect={setSelected} user={user} />;
+  }
+
+  const ToolComponent = tool.component;
+  return <ToolComponent onBack={() => setSelected(null)} />;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<AuthGate />);
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
